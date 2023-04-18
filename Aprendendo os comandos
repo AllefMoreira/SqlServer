@@ -1,0 +1,3226 @@
+-- usando o _ para pesquisa
+USE CRM;
+go
+
+SELECT primeiro_nome
+FROM CLIENTE
+where primeiro_nome like 'A__%';
+go
+
+--usando caracteres coringas
+SELECT primeiro_nome
+FROM CLIENTE
+where primeiro_nome like '[JKL]a%'
+order by primeiro_nome;
+go
+
+USE AdventureWorks2017;
+go,,0
+
+--USANDO O EXISTS
+Select a.FIRSTNAME, a.LASTNAME
+from Person.Person AS a
+where EXISTS(
+	SELECT * FROM HumanResources.Employee AS b
+	where a.BusinessEntityID = b.BusinessEntityID
+	and a.LastName = 'Johnson'); 
+go
+
+--USANDO O COMANDO 'IN'
+Select a.FIRSTNAME, a.LASTNAME
+from Person.Person AS a
+where a.LastName IN(
+	SELECT a.LastName FROM HumanResources.Employee AS b
+	where a.BusinessEntityID = b.BusinessEntityID
+	and a.LastName = 'Johnson'); 
+go
+
+--UTILIZANDO O ANY
+
+Select DISTINCT s.Name
+from Sales.Store AS s
+where s.Name = ANY(
+	SELECT v.Name FROM Purchasing.Vendor AS v); 
+go
+
+--Não tem nenhum nome da tabela sales que seja igual a qualquer nome da tabela Purchasing
+
+Use Curso;
+go
+
+--utilizando HAVING
+
+SELECT a.uf, 
+	   COUNT(a.cod_mun)
+from senso a
+Group by a.uf 
+HAVING COUNT(a.cod_mun) > 100
+order by 2 desc;
+
+--USANDO DDL: 
+USE CURSO;
+GO
+
+CREATE TABLE FUNCIONARIOS(
+		ID INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
+		NOME VARCHAR(30) NOT NULL, 
+		SALARIO DECIMAL(10,2),
+		SETOR VARCHAR(30)
+);
+GO
+
+--USANDO DML
+SELECT ID, NOME, SALARIO, SETOR FROM FUNCIONARIOS;
+GO
+
+INSERT INTO FUNCIONARIOS VALUES('PEDRO', 3000, 'DEP 1'), ('JOÃO', 2500, 'DEP 2'), ('MARCIA', 4000.00, 'DEP 1');
+GO
+
+UPDATE FUNCIONARIOS SET SALARIO = 3500 
+WHERE ID = 3;
+GO
+
+DELETE FUNCIONARIOS 
+WHERE ID = 2;
+GO
+
+--DDL: 
+CREATE TABLE colaborador   
+(      
+		matricula INT IDENTITY(1,1) NOT NULL,
+	    nome VARCHAR(50) NOT NULL,      
+		sobrenome VARCHAR(50) NOT NULL,      
+		endereco VARCHAR(50),      
+		cidade VARCHAR(50),      
+		pais VARCHAR(25),      
+		data_nasc DATE not null check(data_nasc<=getdate()),
+		data_cadastro datetime default getdate(),
+		situacao char(1) default('A')
+);
+GO
+
+ALTER TABLE COLABORADOR ADD PRIMARY KEY (MATRICULA);
+GO
+
+CREATE TABLE salario   
+(      
+	matricula INT PRIMARY KEY NOT NULL,      
+	salario DECIMAL(10, 2) NOT NULL check (salario > 1)
+    FOREIGN KEY(matricula) REFERENCES colaborador(matricula)
+);
+GO
+
+CREATE TABLE audit_salario   
+	(  
+		transacao int identity(1,1)NOT NULL PRIMARY KEY,    
+		matricula INT NOT NULL,      
+		data_trans DATETIME NOT NULL,      
+		sal_antigo DECIMAL(10, 2),      
+		sal_novo DECIMAL(10, 2), 
+		Usuario varchar(20)not null   
+);
+GO
+
+ALTER TABLE AUDIT_SALARIO ADD CONSTRAINT FK_MATRICULA_COLABORADOR
+FOREIGN KEY (MATRICULA) REFERENCES COLABORADOR(MATRICULA);
+GO
+
+--USANDO INDEX: O INDEX É USADO PARA OTIMIZAR A CONSULTA DOS CAMPOS DE UMA TABELA. 
+CREATE INDEX ix_func1 ON COLABORADOR(data_nasc);
+GO
+
+CREATE INDEX ix_func2 ON COLABORADOR(cidade, pais);
+GO
+
+--ADICIONADNO NOVOS CAMPOS NA TABELA
+
+ALTER TABLE COLABORADOR ADD genero char(1); 
+GO
+
+--RENOMEANDO O CAMPO DE UMA TABELA: ISSO AFETA DIRETAMENTE QUALQUER OBJETO QUE USE O CAMPO, UMA VEZ QUE ELE IRÁ PARAR DE FUNCIONAR, POR QUE O CAMPO 'NÃO EXISTE MAIS'.
+EXEC SP_RENAME 'COLABORADOR.ENDERECO', 'ENDER', 'COLUMN';
+GO
+
+--ALTERANDO O TIPO DA COLUNA:
+ALTER TABLE COLABORADOR ALTER COLUMN ENDER VARCHAR(30);
+GO
+
+--EXCLUINDO UM CAMPO DE UMA TABELA
+ALTER TABLE COLABORADOR DROP COLUMN GENERO; 
+GO
+
+--EXCLUIR A CHAVE ESTRANGEIRA NA TABELA SALARIO: USAMOS O SP_HELP PARA ACHAR A FK NA TABELA.
+EXEC SP_HELP SALARIO;
+
+--NOME = FK__salario__salario__7A672E12
+
+ALTER TABLE SALARIO
+DROP CONSTRAINT FK__salario__salario__7A672E12;
+
+--RENOMEANDO UMA TABELA
+
+EXEC SP_RENAME 'FUNC', 'COLABORADOR'; 
+
+--CRIAR E DROPAR DATABASE:
+CREATE DATABASE TESTE;
+GO
+
+DROP DATABASE TESTE; 
+GO
+
+--DROPAR UMA TABELA
+DROP TABLE SALARIO;
+GO
+
+--CRIANDO UMA VIEW
+CREATE VIEW V_COLABORADOR
+	AS
+	SELECT * FROM COLABORADOR;
+GO
+
+--ALTERANDO UMA VIEW
+ALTER VIEW V_COLABORADOR
+	AS
+	SELECT matricula, NOME FROM COLABORADOR;
+GO
+
+SELECT * FROM V_COLABORADOR;
+
+--CRIANDO UMA TABELA E INSERINDO TODOS OS DADOS DE ACORDO COM OUTRA, OU SEJA, FAZENDO UM BACKUP APENAS COM SELECT * INTO
+SELECT * INTO SENSO_BK FROM SENSO;
+GO
+
+SELECT * FROM SENSO_BK;
+GO
+
+--TRUNCATE: TIRA TODOS OS REGISTROS DE UMA TABELA
+TRUNCATE TABLE SENSO_BK;
+GO
+
+--FAZENDO UMA TABELA TEMPORÁRIA
+SELECT * INTO #BK_SENSO2 FROM SENSO;
+
+SELECT COUNT(*) AS CONTAGEM_TRUNCATE 
+FROM #BK_SENSO2;
+
+TRUNCATE TABLE #BK_SENSO2;
+GO
+
+--TESTANDO COMANDOS DCL
+
+--CRIANDO UM USUÁRIO DE TESTE
+
+EXEC MASTER.DBO.SP_ADDLOGIN 'USUARIOTESTE', 'TROCAR123';
+GO
+
+--CONECTANDO O USUÁRIO NO BANCO EM QUE ESTAMOS USANDO
+EXEC sp_grantdbaccess 'USUARIOTESTE';
+
+--CONCEDENDO ACESSO DE UPDATE PARA O USUÁRIO:
+GRANT UPDATE ON FUNCIONARIOS TO USUARIOTESTE;
+GO
+
+--CONCEDENDO ACESSO A INSERIR PARA O USUÁRIO
+GRANT INSERT ON FUNCIONARIOS TO USUARIOTESTE;
+GO
+
+--CONCEDENDO ACESSO AO SELECT PARA O USUÁRIO
+GRANT SELECT ON FUNCIONARIOS TO USUARIOTESTE;
+GO
+
+--CONCEDENDO ACESSO AO DELETE PARA O USUÁRIO
+GRANT DELETE ON FUNCIONARIOS TO USUARIOTESTE;
+GO
+
+CREATE PROCEDURE TESTE_PROC
+	AS
+	SELECT * FROM SENSO;
+GO
+
+EXEC TESTE_PROC;
+GO
+
+--CONCEDENDO ACESSO PARA PODER EXECUTAR A PROCEDURE: 
+GRANT EXECUTE ON TESTE_PROC TO USUARIOTESTE;
+GO
+
+--VERIFICANDO SE O USUARIO ESTÁ DE ACORDO:
+--ENTRANDO NO USUARIO
+SETUSER 'USUARIOTESTE';
+go
+
+SELECT CURRENT_USER;
+go 
+
+--VOLTANDO AO USUÁRIO DBO:
+SETUSER;
+
+select * from funcionarios;
+
+--REVOGANDO OS ACESSOS: 
+
+use curso;
+go
+
+REVOKE UPDATE ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE INSERT ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE SELECT ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE DELETE ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE EXECUTE ON TESTE_PROC TO USUARIOTESTE;
+go
+
+--NEGANDO ACESSOS
+REVOKE UPDATE ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE INSERT ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE SELECT ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE DELETE ON FUNCIONARIOS TO USUARIOTESTE;
+REVOKE EXECUTE ON TESTE_PROC TO USUARIOTESTE;
+go
+
+--TCL:
+create table cadastro
+(
+ nome varchar(50) not null,
+ docto varchar(20) not null
+ );
+
+--INICIANDO A TRANSAÇÃO:
+BEGIN TRANSACTION;
+
+--INSERINDO DADOS DE TESTE
+
+INSERT INTO cadastro VALUES ('Andre', '12341244');
+INSERT INTO cadastro VALUES ('Joao',  '12341248');
+INSERT INTO cadastro VALUES ('Pedro', '12341246');
+
+SELECT * FROM CADASTRO;
+
+--VOLTANDO A ULTIMA TRASNAÇÃO:
+ROLLBACK;
+
+--SALVANDO A TRANSAÇÃO FEITA: 
+COMMIT TRANSACTION; 
+
+delete from cadastro;
+
+--USANDO SAVEPOINTS:
+
+BEGIN TRANSACTION 
+--INSERINTO O REGISTRO
+INSERT INTO cadastro  VALUES ('Andre', '12341244') ;
+
+--CRIA UM PONTO DE RECUPERACAO
+SAVE TRANSACTION a1;
+
+
+INSERT INTO cadastro  VALUES ('Joao','12341244') ;
+SAVE TRANSACTION a2 ;
+
+INSERT INTO cadastro VALUES ('Pedro', '12341244') ;
+SAVE TRANSACTION a3 ;
+
+SELECT * FROM CADASTRO;
+
+--USANDO ROLLBACK NOS PONTOS DE TRANSAÇÕES
+ROLLBACK TRANSACTION a2; 
+
+--porém esses pontos não são salvos como um commit, ou seja, se dermos um rollback ele voltará tudo até o último commit, independente de transactions points. 
+
+--USANDO UNION: 
+
+SELECT '1', 2
+UNION 
+SELECT 'A', 1;
+
+--CASO OS VALORES SEJAM IGUAL ELE JUNTA TODOS OS DADOS IGUAIS.
+SELECT '1', 2
+UNION 
+SELECT '1', 2;
+
+--PORÉM SE FOR UNION ALL, ELE TRÁS OS VALORES DUPLICADOS. 
+SELECT '1', 2
+UNION ALL
+SELECT '1', 2;
+
+USE AdventureWorks2017;
+
+SELECT CITY 
+FROM PERSON.Address 
+WHERE AddressID < 15000
+
+UNION 
+
+SELECT CITY 
+FROM PERSON.Address 
+WHERE AddressID >= 15000;
+
+--575 REGISTROS 
+
+SELECT CITY 
+FROM PERSON.Address 
+WHERE AddressID < 15000
+
+UNION ALL
+
+SELECT CITY 
+FROM PERSON.Address 
+WHERE AddressID >= 15000;
+
+--19.614 REGISTROS, POR QUE CONTÉM DIVERSOS REPETIDOS. 
+
+
+--EXEMPLOS DE SUBQUERY: 
+USE CRM;
+
+select	a.id_cliente,
+		a.primeiro_nome,
+		a.ultimo_nome,
+		a.sexo
+from CLIENTE a
+where a.id_cliente in (select b.id_cliente from carro_cliente b where b.ano = '2005');
+go
+
+--subquery dentro de uma subquery:
+
+select	a.id_cliente,
+		a.primeiro_nome,
+		a.ultimo_nome,
+		a.sexo
+from CLIENTE a
+where a.id_cliente in (select b.id_cliente from carro_cliente b where ano = '2005' and
+b.id_carro in (select c.id_carro from carro_montadora c where c.id_montadora = 2));
+go
+
+--trazendo uma subquery como campo:
+
+Select	a.id_cliente,
+		a.primeiro_nome,
+		a.ultimo_nome,
+		a.sexo,
+		(select b.nome_carro 
+			from carro_montadora b
+			inner join carro_cliente c
+			on b.id_carro = c.id_carro
+			and a.id_cliente = c.id_cliente) as Carro_cliente
+		from cliente a
+		order by 5;
+go
+
+--usando subquery com funções de agregação: 
+SELECT	a.id_montadora, a.nome_carro,
+		(select avg(b.ano) from carro_cliente b where a.id_carro = b.id_carro) as media_carro,
+		(select max(b.ano) from carro_cliente b where a.id_carro = b.id_carro) as maximo_carro,
+		(select min(b.ano) from carro_cliente b where a.id_carro = b.id_carro) as minimo_carro,
+		(select count(*) from carro_cliente b where a.id_carro = b.id_carro) as quantidade
+FROM carro_montadora a
+order by quantidade;
+go
+
+alter table carro_montadora add qtd int; 
+go
+
+UPDATE carro_montadora set qtd = (select count(*) as qtd from carro_cliente b 
+														 inner join carro_montadora c on
+														 c.id_carro = b.id_carro
+														 and carro_montadora.id_carro=b.id_carro
+														 group by b.id_carro);
+go
+
+begin transaction
+
+delete carro_cliente
+where id_cliente in (select id_cliente from cliente where codigo_pais = 'BR');
+go
+
+rollback
+
+use curso;
+go
+
+--PREPARANDO O TERRENO PARA USAR JOIN
+create table alunos
+(id_aluno int identity(1,1),
+ nome varchar(20) not null
+ );
+
+ create table disciplina
+(
+ id_disciplina int identity(1,1),
+ nome_disc varchar(20)
+ );
+
+  create table matricula
+ (id_aluno int,
+  id_disciplina int,
+  periodo varchar(10)
+  );
+
+ALTER TABLE matricula ALTER COLUMN id_aluno INT NOT NULL;
+ALTER TABLE matricula ALTER COLUMN id_disciplina INT NOT NULL;
+
+ALTER TABLE MATRICULA ADD CONSTRAINT PF_1 PRIMARY KEY(ID_ALUNO, ID_DISCIPLINA);
+
+ALTER TABLE DISCIPLINA ADD CONSTRAINT PK2 PRIMARY KEY(ID_DISCIPLINA);
+
+ALTER TABLE ALUNOS ADD CONSTRAINT PK1 PRIMARY KEY(ID_ALUNO);
+
+ALTER TABLE MATRICULA ADD CONSTRAINT FK_MATRICULA_IDALUNO
+FOREIGN KEY (ID_ALUNO) REFERENCES ALUNOS(ID_ALUNO);
+
+ALTER TABLE MATRICULA ADD CONSTRAINT FK_MATRICULA_DISCIPLINA
+FOREIGN KEY (ID_DISCIPLINA) REFERENCES DISCIPLINA(ID_DISCIPLINA);
+
+--INSERINDO DADOS PARA TESTE 
+insert into alunos values ('Joao'),('Maria'),('Pedro'),('Tiago'),('Henrique');
+
+insert into disciplina values ('Fisica'),('Quimica'),('Matematica'),('Banco de Dados'),('Programacao');
+
+insert into matricula values ('1','1','Noturno');
+  insert into matricula values ('1','2','Vespertino');
+  insert into matricula values ('1','3','Matutino');
+
+  insert into matricula values ('2','3','Noturno');
+  insert into matricula values ('2','4','Noturno');
+
+  insert into matricula values ('3','1','Noturno');
+  insert into matricula values ('3','3','Noturno');
+  insert into matricula values ('3','4','Noturno');
+
+  insert into matricula values ('5','1','Matutino');
+  insert into matricula values ('5','2','Vespertino');
+  insert into matricula values ('5','4','Noturno');
+  go
+
+  select * from disciplina;
+  go
+
+  --usando inner join:
+  Select a.id_aluno,
+		 a.nome,
+		 c.id_disciplina,
+		 c.nome_disc,
+		 b.periodo
+		 from alunos a
+		 inner join matricula b
+		 on a.id_aluno = b.id_aluno
+		 inner join disciplina c
+		 on b.id_disciplina = c.id_disciplina;
+		 
+--usando left join:
+  Select a.id_aluno,
+		 a.nome,
+		 c.id_disciplina,
+		 c.nome_disc,
+		 b.periodo
+		 from alunos a
+		 left join matricula b
+		 on a.id_aluno = b.id_aluno
+		 left join disciplina c
+		 on b.id_disciplina = c.id_disciplina
+
+--usando right join:
+  Select a.id_aluno,
+		 a.nome,
+		 c.id_disciplina,
+		 c.nome_disc,
+		 b.periodo
+		 from alunos a
+		 right join matricula b
+		 on a.id_aluno = b.id_aluno
+		 right join disciplina c
+		 on b.id_disciplina = c.id_disciplina
+
+--usando o full:
+  Select a.id_aluno,
+		 a.nome,
+		 c.id_disciplina,
+		 c.nome_disc,
+		 b.periodo
+		 from alunos a
+		 full join matricula b
+		 on a.id_aluno = b.id_aluno
+		 full join disciplina c
+		 on b.id_disciplina = c.id_disciplina
+
+--segunda parte dos joins:
+
+USE CRM;
+GO
+
+SELECT a.id_cliente, 
+       a.primeiro_nome,
+	   a.codigo_pais,
+	   b.ano,
+	   c.nome_carro,
+	   d.nome_montadora
+	   FROM cliente a
+	   inner join carro_cliente b
+	   on a.id_cliente = b.id_cliente
+	   inner join carro_montadora c
+	   on b.id_carro = c.id_carro
+	   inner join montadora d
+	   on c.id_montadora = d.id_montadora;
+go
+
+--usando outro banco
+
+use AdventureWorks2017;
+go
+
+--290 REGISTROS
+select a.BusinessEntityID,
+       a.FirstName,
+	   a.LastName,
+	   b.JobTitle,
+	   a.PersonType
+	   from Person.Person a
+	   inner join HumanResources.Employee b
+	   on a.BusinessEntityID = b.BusinessEntityID
+	   order by 1;
+
+--290 REGISTRO POR QUE TODOS OS DADOS QUE TÊM NA EMPLOYEE ESTÁ NA PERSON.
+select a.BusinessEntityID,
+       a.FirstName,
+	   a.LastName,
+	   b.JobTitle,
+	   a.PersonType
+	   from Person.Person a
+	   RIGHT join HumanResources.Employee b
+	   on a.BusinessEntityID = b.BusinessEntityID
+	   order by 1;
+
+--19.972 REGISTROS POR QUE A MAIORIA DOS DADOS QUE ESTÃO NA PARSON NÃO SE ENCONTRAM NA EMPLOYEE
+select a.BusinessEntityID,
+       a.FirstName,
+	   a.LastName,
+	   b.JobTitle,
+	   a.PersonType
+	   from Person.Person a
+	   LEFT join HumanResources.Employee b
+	   on a.BusinessEntityID = b.BusinessEntityID
+	   order by 1;
+
+--Funções: 
+
+Use curso;
+
+--usando o comando 'top n' nós limitamos os dados que irão aparecer na consulta. 
+select top 5 * from senso;
+select top 5 * from uf;
+select top 5 * from regiao;
+
+--usando avg em um dado geral
+select avg(populacao) from senso;
+
+--usando avg agrupando por dados:
+select uf, avg(populacao) from senso
+group by uf
+order by 2;
+
+Select b.regiao, avg(a.populacao)
+from senso a
+inner join regiao B
+on a.cod_uf	= b.cod_uf
+group by b.regiao
+order by 2;
+
+--usando a função min
+select min(populacao) from senso;
+
+SELECT UF, MIN(POPULACAO) FROM SENSO
+GROUP BY UF
+ORDER BY 2 DESC;
+
+Select b.regiao, MIN(a.populacao)
+from senso a
+inner join regiao B
+on a.cod_uf	= b.cod_uf
+group by b.regiao
+order by 2;
+
+--FUNÇÃO MAX:
+select MAX(populacao) from senso;
+
+SELECT UF, MAX(POPULACAO) FROM SENSO
+GROUP BY UF
+ORDER BY 2 DESC;
+
+Select b.regiao, MAX(a.populacao)
+from senso a
+inner join regiao B
+on a.cod_uf	= b.cod_uf
+group by b.regiao
+order by 2;
+
+--FUNÇÃO SUM:
+select SUM(populacao) from senso;
+
+SELECT UF, SUM(POPULACAO) FROM SENSO
+GROUP BY UF
+ORDER BY 2 DESC;
+
+Select b.regiao, SUM(a.populacao)
+from senso a
+inner join regiao B
+on a.cod_uf	= b.cod_uf
+group by b.regiao
+order by 2;
+
+--FUNÇÃO COUNT
+
+select COUNT(*) from senso;
+
+--27 REGISTROS
+SELECT COUNT(DISTINCT UF) FROM SENSO;
+
+--5564 REGISTROS, UMA VEZ QUE ELE NÃO PEGA TODOS OS ESTADOS DIFERENTES, MAS SIM TODAS AS VEZES QUE ELE REPETE O DADO NA TABELA INTEIRA. 
+SELECT COUNT(UF) FROM SENSO;
+
+SELECT UF, COUNT(*) FROM SENSO
+GROUP BY UF
+ORDER BY 2 DESC;
+
+Select b.regiao, COUNT(*)
+from senso a
+inner join regiao B
+on a.cod_uf	= b.cod_uf
+group by b.regiao
+order by 2 desc;
+
+--juntando todas as funções:
+SELECT AVG(POPULACAO) AS MEDIA,
+	   MIN(POPULACAO) AS MINIMO,
+	   MAX(POPULACAO) AS MAXIMO,
+	   SUM(POPULACAO) AS SOMA,
+	   COUNT(*) AS QUANTIDADE
+FROM SENSO;
+
+SELECT AVG(POPULACAO) AS MEDIA,
+	   MIN(POPULACAO) AS MINIMO,
+	   MAX(POPULACAO) AS MAXIMO,
+	   SUM(POPULACAO) AS SOMA,
+	   COUNT(*) AS QUANTIDADE
+FROM SENSO a
+INNER JOIN REGIAO B
+ON A.COD_UF = B.COD_UF
+GROUP BY B.REGIAO
+ORDER BY 1;
+
+--DESVIO PADRÃO
+SELECT STDEV(POPULACAO) FROM SENSO;
+
+SELECT STDEVP(POPULACAO) FROM SENSO;
+
+--GROUPING
+
+SELECT UF, SUM(POPULACAO), GROUPING(UF) FROM SENSO
+GROUP BY UF WITH ROLLUP;
+
+--O ROLLUP AGRUPA TODOS OS RESULTADOS ACIMA E FAZ A SOMATÓRIA TOTAL DOS DADOS, POR ISSO O GROUPING APONTA 1, POR QUE ELE ESTÁ AGRUPANDO TODOS OS DADOS EM UMA LINHA
+
+SELECT NOME_MUN,
+	   POPULACAO,
+	   POPULACAO * 1.05 AS AUMENTO
+	   FROM SENSO;
+
+SELECT UF,
+	   SUM(POPULACAO) AS POPULACAO,
+	   SUM(POPULACAO) * 1.05 AS POP_COM_AUMENTO
+	   FROM SENSO
+	   GROUP BY UF;
+
+SELECT b.regiao,
+	   A.UF,
+	   SUM(A.POPULACAO) AS POPULACAO,
+	   GROUPING_ID(B.REGIAO, A.UF) AS GRUPO
+	   FROM SENSO A
+	   INNER JOIN REGIAO B
+	   ON A.COD_UF = B.COD_UF
+	   GROUP BY ROLLUP (B.REGIAO, A.UF);
+
+--PEGANDO A VARIÂNCIA DE POPULAÇÃO DE CADA DF
+
+SELECT VAR(POPULACAO) AS POPULACAO
+FROM SENSO;
+
+SELECT UF, VAR(POPULACAO) AS POPULACAO
+FROM SENSO
+GROUP BY UF;
+
+--USANDO VARP
+SELECT UF, VARP(POPULACAO) AS POPULACAO
+FROM SENSO
+GROUP BY UF;
+
+--USANDO PARA VARP
+SELECT UF, VARP(POPULACAO) AS VARP, VAR(POPULACAO) AS VAR
+FROM SENSO
+GROUP BY UF;
+
+SELECT MAX(POPULACAO), UF
+	   FROM SENSO
+	   GROUP BY UF
+	   ORDER BY 1 DESC;
+
+--EXEMPLO DE COMO ESCOBIR A CIDADE COM MAIOR POPULAÇÃO 
+SELECT A.* FROM
+(SELECT COD_UF, MAX(POPULACAO) AS POPULACAO 
+FROM SENSO GROUP BY COD_UF) B
+INNER JOIN SENSO A
+ON A.COD_UF = B.COD_UF
+AND A.populacao = B.POPULACAO
+ORDER BY A.POPULACAO DESC;
+
+--EXEMPLO 2:
+
+SELECT A.COD_UF, A.NOME_MUN, A.POPULACAO
+FROM SENSO A
+GROUP BY A.COD_UF, A.NOME_MUN, A.POPULACAO
+HAVING POPULACAO = (SELECT MAX(POPULACAO) FROM SENSO WHERE COD_UF = A.COD_UF)
+ORDER BY A.POPULACAO DESC;
+
+--USANDO FUNÇÕES DE CLASSIFICAÇÃO
+
+--A FUNÇÃO RANK FAZ UM RANKING DE ACORDO COM O ORDER BY:
+SELECT RANK() OVER (ORDER BY ESTADO ASC) AS RANK_UF, ESTADO
+FROM UF;
+
+--o rank vai de 1 para 5 por que existem 4 registros no rank 1, então o próximo registro é o de número 5. E isso segue para os outros ranks. 
+SELECT RANK() OVER (ORDER BY REGIAO ASC) AS RANK_UF, REGIAO, ESTADO
+FROM REGIAO;
+
+--USANDO O NTILE QUE DIVIDE EM N QUANTIDADES DE ACORDO COM O QUE FOR SOLICITADO
+USE CURSO;
+SELECT NTILE(3) OVER (ORDER BY REGIAO ASC) as NTILE_UF, REGIAO, ESTADO
+FROM REGIAO;
+
+--USANDO ROW_NUMBER: DIFERENTEMENTE DO RANK, ELE NÃO TRÁS NÚMERO REPETIDOS. 
+SELECT ROW_NUMBER() OVER (ORDER BY REGIAO ASC) as NTILE_UF, REGIAO, ESTADO
+FROM REGIAO;
+
+create table campeonato
+(
+ nometime varchar(30)not null,
+ pontos int not null
+ );
+ --populando tabela
+insert into campeonato values ('Atlético-GO','22');
+insert into campeonato values ('Chapecoense','28');
+insert into campeonato values ('Ponte Preta','28');
+insert into campeonato values ('Grêmio','43');
+insert into campeonato values ('Cruzeiro','37');
+insert into campeonato values ('Santos','41');
+insert into campeonato values ('Palmeiras','40');
+insert into campeonato values ('Corinthians','53');
+insert into campeonato values ('Flamengo','38');
+insert into campeonato values ('Botafogo','37');
+insert into campeonato values ('Atlético-PR','34');
+insert into campeonato values ('Vasco','31');
+insert into campeonato values ('Atlético-MG','31');
+insert into campeonato values ('Sport','29');
+insert into campeonato values ('Avaí','29');
+insert into campeonato values ('Bahia','27');
+insert into campeonato values ('Fluminense','31');
+insert into campeonato values ('São Paulo','27');
+insert into campeonato values ('Coritiba','27');
+insert into campeonato values ('Vitória','26');
+
+SELECT RANK() OVER (ORDER BY PONTOS), NOMETIME, PONTOS FROM CAMPEONATO;
+
+--FUNÇÕES LÓGICAS:
+
+--CHOOSE: SELECIONA O VALOR DE ACORDO COM O SELECIONADO. ENTÃO SE COLOCARMOS 2 AO INÍCIO, ELE IRÁ TRAZER A OPÇÃO CUJO ÍNDICE É IGUAL A 2
+SELECT CHOOSE(2,'OPÇÃO 1','OPÇÃO 2','OPÇÃO 3','OPÇÃO 4') AS ESCOLHIDO;
+
+--EXEMPLO:
+USE AdventureWorks2017;
+
+SELECT PRODUCTCATEGORYID, 
+	   CHOOSE(PRODUCTCATEGORYID, 'A','B','C','D','E') AS EXPRESSAO
+	   FROM Production .ProductCategory;
+
+
+USE AdventureWorks2017;
+GO
+
+SELECT JOBTITLE,
+	   HireDate,
+	   MONTH(HireDate) AS "MONTH",
+	   CHOOSE(Month(hiredate), 'Winter', 'Winter', 'Spring', 'Spring', 
+		                        'Spring','Summer', 'Summer','Summer', 
+								'Autumn', 'Autumn', 'Autumn','Winter') AS Quarter_Hired 
+	   FROM HumanResources.Employee
+	   WHERE YEAR(HireDate) > 2005
+	   ORDER BY YEAR(HireDate);
+	   
+--USANDO IIF, ONDE O PRIMEIRO RESULTADO APARECERÁ CASO FOR VERDADEIRO, E O SEGUNDO CASO FOR FALSO. 
+DECLARE @A INT = 40, @B INT = 43
+		SELECT IIF(@A > @B, 'TRUE', 'FALSE');
+		GO
+
+DECLARE @A VARCHAR(30) = 'VERDADEIRO', @B VARCHAR(30) = 'FALSO'
+		SELECT IIF(40 < 50, @A, @B);
+		GO
+
+
+--USANDO FUNÇOES MATEMÁTICAS:
+
+--USANDO A FUNÇÃO ABS: RETORNA O VALOR COMO POSITIVO, APENAS POSITIVO
+SELECT ABS(-2)
+
+--USANDO A FUNÇÃO RAND: RETORNA UM VALOR ALEATÓRIO DE 0 A 1:
+SELECT RAND(),
+	   RAND(),
+	   RAND();
+
+--USANDO A FUNÇÃO ROUND: ARREDONDA O VALOR DE ACORDO COM O NÚMERO DETERMINADO, ENTÃO SE O NÚMERO DETERMINADO FOR 3, ELE VAI ARREDONDAR ATÉ A 3° CASA.
+SELECT ROUND(12.2223, 2),
+	   ROUND(12.2225, 2);
+
+--NESSE CASSO ELE IRÁ ARREDONDAR 1 CASA ANTES DA VÍRGULA. O QUE RESULTA EM 10, POR QUE ABAIXO DE 5 ELE ARREDONDA PARA 0. 
+SELECT ROUND(12.2223, -1);
+
+--UTILIZANDO A FUNÇÃO POWER: ELEVA O PRIMEIRO NÚMERO PELO SEGUNDO
+SELECT POWER(2, 3);
+
+DECLARE @VALOR INT = 5, @POTENCIA INT = 2
+		SELECT POWER(@VALOR, @POTENCIA);
+
+--UTILIZANDO A RAIZ QUADRADA: 
+SELECT SQRT(9);
+
+--FUNÇÃO DE LIMITE: 
+USE CURSO;
+GO
+
+SELECT TOP 10 * FROM campeonato
+ORDER BY PONTOS DESC;
+
+USE CRM;
+
+SELECT  TOP 10 A.nome_montadora, COUNT(B.ID_CARRO) AS QTD_CARRO
+		FROM montadora A
+		INNER JOIN carro_montadora B
+		ON A.id_montadora = B.id_montadora
+		GROUP BY nome_montadora
+		ORDER BY 2 DESC;
+
+USE CURSO;
+
+SELECT TOP 10 *, RANK() OVER (ORDER BY POPULACAO DESC)  AS RANKING
+FROM SENSO 
+ORDER BY POPULACAO DESC;
+
+
+--FUNÇÕES DE CONVERSÃO:
+DECLARE @VALOR DECIMAL(5,2) = 193.57
+SELECT CAST(@VALOR AS VARBINARY(20));
+SELECT CONVERT(VARBINARY(20), @VALOR);
+
+--USANDO CAST:
+USE AdventureWorks2017;
+
+SELECT SUBSTRING(NAME, 1, 30), LISTPRICE
+FROM Production.Product
+WHERE CAST(LISTPRICE AS INT) LIKE '3%'
+ORDER BY 2 DESC;
+
+--USANDO CONVERT
+
+SELECT SUBSTRING(NAME, 1, 30), LISTPRICE
+FROM Production.Product
+WHERE CONVERT(INT, LISTPRICE ) LIKE '3%'
+ORDER BY 2 DESC;
+
+Use AdventureWorks2017;
+GO
+
+SELECT CAST(ROUND(SalesYTD / CommissionPct, 2) AS INT) AS FORMATADO,
+	   (SalesYTD / CommissionPct) AS NÃO_FORMATADO
+FROM SALES.SalesPerson
+WHERE CommissionPct <> 0;
+
+--EXEMPLOS:
+SELECT DISTINCT 'A LISTA DE PREÇO É:' + CONVERT(VARCHAR(20), ListPrice) AS LISTA_PRECO
+	   FROM Production.Product
+	   WHERE ListPrice BETWEEN 350 AND 400;
+
+SELECT 'A LISTA DE PREÇO É:' + CONVERT(VARCHAR(20), ListPrice) AS LISTA_PRECO
+	   FROM Production.Product
+	   WHERE ListPrice BETWEEN 350 AND 400;
+
+--COMO USAR O TRY_CAST:
+SELECT	CASE WHEN TRY_CAST('TESTE' AS FLOAT) IS NULL
+		THEN 'CAST FAIL'
+		ELSE 'CAST OK!'
+	END AS RESULTADO;
+
+SELECT	CASE WHEN TRY_CAST(52 AS FLOAT) IS NULL
+		THEN 'CAST FAIL'
+		ELSE 'CAST OK!'
+	END AS RESULTADO;
+
+SET DATEFORMAT dmy;
+SELECT TRY_CAST('31/12/2022' AS DATETIME)
+
+--CONFIGURAÇÃO EXPLÍCITA PARA CADA INDIOMA
+SELECT PARSE('MONDAY, 13 DECEMBER 2010' AS DATETIME USING 'en-US');
+
+SELECT PARSE('Segunda-Feira, 13 Dezembro 2010' AS DATETIME USING 'pt-BR');
+
+SELECT PARSE('R$53,65' AS MONEY USING 'pt-BR');
+
+SET LANGUAGE 'ENGLISH';
+SELECT PARSE('02/12/2022' AS DATETIME);
+
+SELECT	CASE  WHEN TRY_CONVERT(FLOAT, '23') IS NULL
+		THEN 'ERRO!'
+		ELSE 'SUCESSO'
+		END AS RESULTADO;
+
+--FUNÇÕES DE CARACTERES: 
+
+--USANDO ASCII: Traz o valor dentr da tabela ASC do peimiro caractere a esquerda e o espaço conta. 
+SELECT ASCII('SQL');
+SELECT ASCII('S'), ASCII('Q') ,ASCII('L');
+
+DECLARE @POSICAO INT, @STRING CHAR(5);
+SET @POSICAO = 1;
+SET @STRING = 'TEste';
+
+WHILE	@POSICAO <= LEN(@STRING) 
+BEGIN
+		SELECT ASCII(SUBSTRING(@STRING, @POSICAO, 1))COD_ASCII, 
+		CHAR(ASCII(SUBSTRING(@STRING, @POSICAO, 1)))
+		SET @POSICAO = @POSICAO + 1
+END;
+GO
+
+--USANDO LTRIM: TIRA OS ESPAÇOS DA ESQUERDA
+DECLARE @STRING VARCHAR(50);
+SET @STRING = '      HELLO WORLD!'
+
+SELECT	'Texto sem espaços: ' + LTRIM(@STRING) AS "SEM ESPAÇO", 
+		'Texto com espaços: ' + @STRING AS "COM ESPAÇO";
+GO
+
+--USANDO RTRIM: RETIRA O ESPAÇO DA DIREITA
+
+DECLARE @STRING VARCHAR(50);
+SET @STRING = 'HELLO WORLD!               '
+
+SELECT	RTRIM(@STRING) + '<- Texto sem espaços' AS "SEM ESPAÇO", 
+		@STRING  + '<- Texco com espaços' AS "COM ESPAÇO";
+
+--USANDO A FUNÇÃO STR:
+
+Select 'Teste' + STR(452.62, 4, 1);
+
+--USANDO CONCAT: UTILIZADO PARA JUNTAR DIVERSOS DADOS
+SELECT CONCAT(CURRENT_USER, ', seu saldo é R$',
+							11.00,
+							' no dia ',
+							DAY(GETDATE()), '/',
+							MONTH(GETDATE()), '/',
+							YEAR(GETDATE()), '/') as Resultado;
+
+--USANDO CONCAT_WS
+USE CRM;
+
+SELECT CONCAT_WS(' | ', primeiro_nome, ultimo_nome, email, nascimento, sexo)
+from cliente;
+
+--
+use curso;
+
+--USANDO CONCAT_WS: PARA DADOS NULOS O CONCAT_WS IGNORA, E ISSO DARÁ ERRO POSTERIORMENTE, ENTÃO DEVEMOS TRATAR O DADO
+SELECT CONCAT_WS(' -- ', a.id_aluno, a.nome, b.id_disciplina, c.nome_disc, b.periodo)
+from alunos a
+left join matricula b
+on  a.id_aluno = b.id_aluno
+left join disciplina c
+on b.id_disciplina = c.id_disciplina;
+
+--TRATANDO:
+SELECT CONCAT_WS(' -- ',a.id_aluno, 
+						a.nome, 
+						ISNULL(b.id_disciplina, '0'), 
+						ISNULL(c.nome_disc,'0'), 
+						ISNULL(b.periodo, '0')) AS "ALUNOS - DISCIPLINA"
+from alunos a
+left join matricula b
+on  a.id_aluno = b.id_aluno
+left join disciplina c
+on b.id_disciplina = c.id_disciplina;
+
+--USANDO REPLACE: ELE TROCA UMA CADEIA DE CARACTERES ESPECIFICADA POR OUTRA:
+SELECT 'DASDJNKSA', REPLACE('DASDJNKSA', 'ASD', 'XXX');
+
+SELECT 'FAZENDO UM TESTE', REPLACE('FAZENDO UM TESTE', 'TESTE', 'MINI TESTE');
+
+DECLARE @TESTE VARCHAR(30)
+SET @TESTE = 'REALIZANDO MAIS UM TESTE'
+SELECT @TESTE, REPLACE(@TESTE, 'TESTE', 'ALMOÇO');
+
+SELECT REGIAO, REPLACE(REGIAO, 'SUL', 'SOUTH')
+FROM REGIAO
+ORDER BY 1;
+
+--USANDO REPLICATE: REPLICA O CARACTERE ESPECIFICADO QUANTAS VEZES O USUÁRIO ESPECIFICAR
+USE AdventureWorks2017;
+
+SELECT	NAME, 
+		PRODUCTLINE, 
+		REPLICATE(0, 2) + PRODUCTLINE
+		FROM Production.Product
+		WHERE ProductLine = 'T'
+		ORDER BY 1;
+
+--USANDO LEFT: TRÁS AS POSIÇÕES ESPECIFICADAS A ESQUERDA DO NOME, OU SEJA, AS PRIMEIRAS PROSIÇÕES
+SELECT	NAME, 
+		LEFT(NAME, 5)
+		FROM Production.Product
+		ORDER BY ProductID;
+
+--USANDO UPPER: MANDA TODAS PARA MAIÚSCULA
+USE CURSO;
+
+SELECT	ESTADO,
+		UPPER(ESTADO)
+		FROM regiao;
+
+--MANDA TODAS PARA MINÚSCULA:
+SELECT	ESTADO,
+		LOWER(ESTADO)
+		FROM regiao;
+
+--USANDO SUBSTRING: O PRIMEIRO DADO É A CADEIA DE CARACTERES A SER UTILIZADA, A SEGUNDA É DE ONDE COMEÇA, E A ÚLTIMA É DE ONDE TERMINA.
+USE AdventureWorks2017; 
+
+SELECT	LASTNAME,
+		SUBSTRING(LASTNAME, 1, 3),
+		SUBSTRING(LASTNAME, 1, 9),
+		SUBSTRING(LASTNAME, 4, 7)
+		FROM PERSON.PERSON
+		ORDER BY LASTNAME;
+
+--FUNÇÃO REVERSE: TRAZ A CADEIA DE CARACTERES AO CONTRÁRIO, RESPEITANDO ESPAÇOS, MAIÚSCULAS E MINÚSCULAS. 
+
+SELECT	TOP 5 FIRSTNAME,
+		REVERSE(FIRSTNAME)
+		FROM PERSON.PERSON
+		ORDER BY LASTNAME;
+
+--FUNÇÃO LEN: USADO PARA SABER QUANTOS CARACTERES TÊM NA STRING
+
+SELECT	FIRSTNAME,
+		LEN(FIRSTNAME)
+		FROM sales.vIndividualCustomer
+		GROUP BY FirstName
+		ORDER BY 1;
+
+--DATALENGTH: MOSTRA QUANTOS BYTES UMA COLUNA ARMAZENA
+SELECT	NAME,
+		DATALENGTH(NAME)
+		FROM Production.Product
+		ORDER BY 1;
+
+
+use curso
+CREATE TABLE t1   
+	(      c1 VARCHAR(3),      
+			c2 CHAR(3),
+			c3 NVARCHAR(3)  
+	 );
+
+INSERT INTO t1 VALUES      ('2','2','2') 
+INSERT INTO t1 VALUES      ('37','37','37') 
+INSERT INTO t1 VALUES      ('597','597','597') 
+
+--É POSSÍVEL PERCEBER QUE DEPENDENDO DO TIPO DE DADO, ELE GERA QUANTIDADES DE BYTES MAIOR OU MENOS
+SELECT	C1, C2, C3,
+		DATALENGTH(C1),
+		DATALENGTH(C2),
+		DATALENGTH(C3)
+		FROM T1; 
+
+--USANDO A FUNÇÃO RIGHT: MOSTRA OS ULTIMOS CARACTERES DE ACORDO COM O NÚMERO ESPECIFICADO.
+USE CURSO;
+
+SELECT	ESTADO,
+		RIGHT(ESTADO, 5)
+		FROM REGIAO;
+
+SELECT	Sysdatetime() as "Sysdatetime",
+		Sysdatetimeoffset() as "Sysdatetimeoffset",
+		Sysutcdatetime() as "Sysutcdatetime",
+		CURRENT_TIMESTAMP as "CURRENT_TIMESTAMP",
+		GETDATE() as "GETDATE",
+		GETUTCDATE() as "GETUTCDATE";
+
+--USANDO DATENAME: TRÁS A O NOME(DIA, MÊS, ANO, ETC...) DA DATA QUE FOI POSTA COMO PARÂMETRO MAS EM STRING
+
+SELECT	GETDATE() AS DATA,
+		DATENAME(DAY, GETDATE()) AS DIA,
+		DATENAME(MONTH, GETDATE()) AS MES,
+		DATENAME(YEAR, GETDATE()) AS ANO
+
+--USANDO DATEPART: TRÁS A O NOME(DIA, MÊS, ANO, ETC...) DA DATA QUE FOI POSTA COMO PARÂMETRO MAS EM INTEIRO
+SELECT	GETDATE() AS DATA,
+		DATEPART(DAY, GETDATE()) AS DIA,
+		DATEPART(MONTH, GETDATE()) AS MES,
+		DATEPART(YEAR, GETDATE()) AS ANO
+
+--USANDO FUÇÕES DE DIA, MES E ANO
+
+SELECT	GETDATE() AS DATA,
+		DAY(GETDATE()) AS DIA,
+		MONTH(GETDATE()) AS MES,
+		YEAR(GETDATE()) AS ANO
+
+--USANDO DATETIMEFROMPARTS: JUNTA AS DATAS USADAS DE PARÂMETRO SENDO: ANO, MES, DIA, HORAS, MINUTOS, SEGUNDOS, MILESEGUNDOS 
+SELECT DATETIMEFROMPARTS(2022,05,14,3,45,59,5) AS DATA
+UNION ALL
+SELECT DATETIMEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), DAY(GETDATE()), 5, 50, 3, 800) 
+
+--EXEMPLOS:
+USE CRM;
+GO
+
+SELECT	TOP 5
+		primeiro_nome,
+		NASCIMENTO,
+		DAY(NASCIMENTO) AS DIA,
+		MONTH(NASCIMENTO) AS MÊS,
+		YEAR(NASCIMENTO) AS ANO
+		FROM CLIENTE;
+
+SELECT	MONTH(NASCIMENTO) AS MES,
+		YEAR(NASCIMENTO) AS ANO,
+		COUNT(*) AS QTD
+		FROM CLIENTE
+		GROUP BY MONTH(NASCIMENTO), YEAR(NASCIMENTO)
+		ORDER BY 1, 2;
+
+SELECT	DATENAME(MONTH, NASCIMENTO) AS MES,
+		YEAR(NASCIMENTO) AS ANO,
+		COUNT(*) AS QTD
+		FROM CLIENTE
+		GROUP BY DATENAME(MONTH, NASCIMENTO), YEAR(NASCIMENTO)
+		ORDER BY 2, 1;
+
+Select	distinct concat(replicate('0', 2 - len(month(nascimento))), month(nascimento)),
+		len(month(nascimento))
+		from cliente;
+
+SELECT	concat(concat(replicate('0', 2 - len(month(nascimento))), month(nascimento)), ' - ', DATENAME(MONTH, NASCIMENTO)) AS MES,
+		YEAR(NASCIMENTO) AS ANO,
+		COUNT(*) AS QTD
+		FROM CLIENTE
+		GROUP BY concat(concat(replicate('0', 2 - len(month(nascimento))), month(nascimento)), ' - ', DATENAME(MONTH, NASCIMENTO)), YEAR(NASCIMENTO)
+		ORDER BY 2, 1;
+
+--USANDO FUÇÕES DE DATEDIFF E DATEADD:
+
+SELECT	DATEDIFF(DAY, '03-01-2003', GETDATE()) AS "DIAS DIFERENÇA",
+		DATEDIFF(MONTH, '03-01-2003', GETDATE()) AS "MESES DIFERENÇA",
+		DATEDIFF(YEAR, '03-01-2003', GETDATE()) AS "ANOS DIFERENÇA";
+
+use crm;
+
+SELECT	TOP 10
+		id_cliente,
+		primeiro_nome,
+		nascimento,
+		DATEDIFF(DAY, NASCIMENTO, GETDATE()) AS DIA_DIFF,
+		DATEDIFF(MONTH, NASCIMENTO, GETDATE()) AS MES_DIFF,
+		DATEDIFF(YEAR, NASCIMENTO, GETDATE()) AS ANO_DIFF
+		FROM CLIENTE;
+
+DECLARE @ANIVERSARIO DATETIME
+SET @ANIVERSARIO = '03-01-2003'
+
+SELECT	DATEDIFF(DAY, @ANIVERSARIO, GETDATE()) AS "DIAS DIFERENÇA",
+		DATEDIFF(MONTH, @ANIVERSARIO, GETDATE()) AS "MESES DIFERENÇA",
+		DATEDIFF(YEAR, @ANIVERSARIO, GETDATE()) AS "ANOS DIFERENÇA";
+
+-- USANDO DATEADD:
+
+SELECT	GETDATE() ATUAL,
+		DATEADD(DAY, 90, GETDATE()) AS "DIAS DIFERENÇA",
+		DATEADD(MONTH, 2, GETDATE()) AS "MESES DIFERENÇA",
+		DATEADD(YEAR, 25, GETDATE()) AS "ANOS DIFERENÇA";
+
+USE curso;
+
+create table contas
+(
+ id_cont int identity(1,1) not null primary key,
+ data_conta date not null,
+ dias int,
+ data_vencimento date ,
+ valor decimal(10,2),
+ situacao char(1) default('A')
+ );
+
+
+  insert into contas (data_conta,dias,valor) values ('2018-05-24',10,25.75);
+  insert into contas (data_conta,dias,valor) values ('2018-05-24',30,40.75);
+  insert into contas (data_conta,dias,valor) values ('2018-05-24',60,30.75);
+
+ SELECT	id_cont,
+		data_conta,
+		dias,
+		Dateadd(day, dias, data_conta ) as data_vencimento,
+		valor
+ FROM CONTAS;
+
+ Update contas set data_vencimento = Dateadd(day, dias, data_conta)
+		where data_vencimento is null;
+
+ select * from contas;
+
+ --FORMATANDO DATAS: USANDO A FUNÇÃO CONVERT, NÓS PODEMOS CONVERTER UMA DATA ESPECÍFICA EM OUTROS PADRÕES, DIGITANDO SEUS CÓDIGOS AO FIM DO COMANDO.
+SELECT CONVERT(VARCHAR(10), GETDATE(), 103)
+
+ --O TAMANHO DO VARCHAR É DIRETAMENTE LIGADO A QUANTIDADE DE DÍGITOS QUE IRÃO SER IMPRESSOS
+SELECT CONVERT(VARCHAR(5), GETDATE(), 103)
+
+ --OUTROS PADRÕES:
+SELECT CONVERT(VARCHAR(10), GETDATE(), 100)
+SELECT CONVERT(VARCHAR(10), GETDATE(), 108)
+SELECT CONVERT(VARCHAR(10), GETDATE(), 1)
+
+--EXEMPLOS:
+SELECT	DAY(CONVERT(VARCHAR(10), GETDATE(), 103)) AS DIAS,
+		MONTH(CONVERT(VARCHAR(10), GETDATE(), 103)) AS MESES,
+		YEAR(CONVERT(VARCHAR(10), GETDATE(), 103)) AS ANOS
+
+SELECT	CAST(DAY(GETDATE()) AS VARCHAR(2)) + ' ' +
+		DATENAME(MONTH, GETDATE()) AS "DIA E MÊS"
+
+USE CRM;
+
+--EXPRESSÃO CASE:
+
+DECLARE @DATA DATETIME
+SET @DATA = GETDATE() -1
+
+SELECT CASE WHEN @DATA = GETDATE() THEN 'PRESENTE'
+			WHEN @DATA < GETDATE() THEN 'PASSADO'
+			WHEN @DATA > GETDATE() THEN 'FUTURO'
+			END;
+
+USE AdventureWorks2017;
+GO
+
+--exemplo 1
+SELECT  ProductNumber,
+		ProductLine,
+		CATEGORIA = CASE productline
+		WHEN 'R' THEN 'ROAD'
+		WHEN 'M' THEN 'MOUNTAIN'
+		WHEN 'T' THEN 'TOURING'
+		WHEN 'S' THEN 'OTHER SALE ITEMS'
+		ELSE 'OPÇÃO INCORRETA'
+		END,
+		NAME 
+FROM Production.Product
+WHERE ProductLine IS NOT NULL
+ORDER BY PRODUCTLINE
+
+--exemplo 2:
+SELECT  ProductNumber,
+		ProductLine,
+		CASE 
+		WHEN productline = 'R' THEN 'ROAD'
+		WHEN productline = 'M' THEN 'MOUNTAIN'
+		WHEN productline = 'T' THEN 'TOURING'
+		WHEN productline = 'S' THEN 'OTHER SALE ITEMS'
+		ELSE 'OPÇÃO INCORRETA'
+		END Categoria,
+		NAME 
+FROM Production.Product
+WHERE ProductLine IS NOT NULL
+ORDER BY PRODUCTLINE
+
+--EXEMPLO 3
+SELECT  ProductNumber,
+		NAME,
+		LISTPRICE, 
+		CASE 
+			WHEN LISTPRICE = 0 THEN 'Não está a venda'
+			WHEN LISTPRICE <= 50 THEN 'Abaixo de $50'
+			WHEN LISTPRICE > 50 AND LISTPRICE <= 250 THEN 'Mior do que $50 e menor do que $251'
+			WHEN LISTPRICE > 250 AND LISTPRICE <= 1000 THEN 'Mior do que $250 e menor do que $1001'
+			ELSE 'Acima de $1000'
+		END Price_Range
+FROM Production.Product
+ORDER BY ProductNumber
+
+--UPDATE USANDO CASE: 
+  BEGIN TRANSACTION
+
+	UPDATE humanresources.employee 
+	SET vacationhours = (CASE WHEN ((vacationhours - 10.00) < 0) 
+	   THEN  vacationhours + 40.00 
+	   ELSE (vacationhours + 20.00) END) 
+	   output deleted.businessentityid,        
+	   deleted.vacationhours AS Antes,        
+	   inserted.vacationhours AS Depois 
+	   WHERE  salariedflag = 0;
+   
+   Rollback transaction;
+
+use curso
+create table teste2
+(
+  val1 int,
+  val2 int
+);
+
+insert into teste2 values (100,0),(100,25),(1,0),(5,2)
+
+SELECT	VAL1, 
+		VAL2, 
+		ISNULL(VAL1/NULLIF(val2, 0), 0),
+		ISNULL(cast(VAL1 as decimal(5,2))/cast(NULLIF(val2, 0) as decimal(5,2)), 0)
+		FROM TESTE2;
+
+use AdventureWorks2017
+go
+
+SELECT 	productid,        
+		makeflag,        
+		finishedgoodsflag,        
+		NULLIF(makeflag, finishedgoodsflag)AS 'Null se igual' 
+		FROM   production.product 
+		WHERE  productid < 10; 
+
+use curso;
+
+select distinct a.id_aluno, a.nome, isnull(b.periodo, 'Não Matriculado') as periodo
+from alunos a
+left join matricula b
+on a.id_aluno = b.id_aluno;
+
+
+--EXEMPLOS DE COALESCE: RETORNA O PRIMEIRO VALOR QUE NÃO SEJA NULO
+SELECT COALESCE(NULL, NULL, '3° VALOR', '4° VALOR')
+
+--SE TODOS OS ARGUMENTOS FOREM NULOS, ELE RETORNARÁ UM ERRO. 
+SELECT COALESCE(NULL, NULL, NULL);
+
+use curso
+--drop table tab_salario;
+CREATE TABLE tab_salario  
+(  
+    matricula     int   identity,  
+    salario_hora  decimal   NULL,  
+    salario       decimal   NULL,  
+    comissao      decimal   NULL,  
+    vendas        int   NULL  
+); 
+ 
+INSERT tab_salario (salario_hora, salario, comissao, vendas)  
+VALUES  
+    (10.00, NULL, NULL, NULL),  
+    (20.00, NULL, NULL, NULL),  
+    (30.00, NULL, NULL, NULL),  
+    (40.00, NULL, NULL, NULL),  
+    (NULL, 10000.00, NULL, NULL),  
+    (NULL, 20000.00, NULL, NULL),  
+    (NULL, 30000.00, NULL, NULL),  
+    (NULL, 40000.00, NULL, NULL),  
+    (NULL, NULL, 15000, 3),  
+    (NULL, NULL, 25000, 2),  
+    (NULL, NULL, 20000, 6),  
+    (NULL, NULL, 14000, 4); 
+
+SELECT	MATRICULA, SALARIO, COMISSAO, VENDAS,
+		CAST(COALESCE(SALARIO_HORA  * 40 * 52, SALARIO, COMISSAO * VENDAS) AS MONEY) AS "TOTAL SALARIO"
+FROM tab_salario
+ORDER BY 1;
+  
+--Utilizando Views:
+
+USE AdventureWorks2017;
+
+--CRIANDO UMA VIEW
+CREATE VIEW V_DATA_CONTRATACAO 
+AS 
+	SELECT	P.FirstName,
+			P.LastName,
+			E.BusinessEntityID,
+			E.HireDate
+	FROM HumanResources.Employee E
+	JOIN PERSON.Person P
+	ON E.BusinessEntityID = P.BusinessEntityID
+GO
+
+--USANDO A VIEW
+SELECT * FROM V_DATA_CONTRATACAO 
+
+SELECT * FROM V_DATA_CONTRATACAO 
+WHERE FirstName LIKE 'A%'
+
+--ALTERANDO A VIEW
+ALTER VIEW V_DATA_CONTRATACAO
+AS 
+	SELECT	P.FirstName,
+			P.MiddleName,
+			P.LastName,
+			E.BusinessEntityID,
+			E.HireDate
+	FROM HumanResources.Employee E
+	JOIN PERSON.Person P
+	ON E.BusinessEntityID = P.BusinessEntityID
+GO
+
+SELECT * FROM V_DATA_CONTRATACAO 
+
+SELECT * FROM V_DATA_CONTRATACAO 
+WHERE FirstName LIKE 'A%'
+
+
+--MONTANDO O TERRENO PARA TESTES:
+use curso
+CREATE TABLE fornecedores1              
+(              
+id_fornec INT PRIMARY KEY CHECK (id_fornec BETWEEN 1 AND 150),             
+fornec CHAR(50)              
+)
+CREATE TABLE fornecedores2              
+( 
+ id_fornec INT PRIMARY KEY CHECK (id_fornec BETWEEN 151 AND 300),          
+ fornec    CHAR(50) )
+
+CREATE TABLE fornecedores3             
+(
+  id_fornec INT PRIMARY KEY CHECK(id_fornec BETWEEN 301 AND 450),       
+  fornec char(50)
+ )
+CREATE TABLE fornecedores4              
+(             
+  id_fornec INT PRIMARY KEY CHECK (id_fornec BETWEEN 451 AND 600),             
+  fornec    CHAR(50)              
+) 
+
+--inserindo valores  
+ INSERT  fornecedores1 VALUES  ('1','CaliforniaCorp') 
+ INSERT  fornecedores1 VALUES  ('5', 'BraziliaLtd')
+  
+ INSERT  fornecedores2 VALUES  ('231','FarEast')
+ INSERT  fornecedores2 VALUES  ('280','NZ') 
+
+ INSERT  fornecedores3 VALUES  ('321','EuroGroup') 
+ INSERT  fornecedores3 VALUES  ('442','UKArchip') 
+  
+ INSERT  fornecedores4 VALUES  ('475','India') 
+ INSERT  fornecedores4 VALUES  ('521','Afrique') 
+
+ CREATE VIEW V_FORNEC_GERAL
+ AS
+	SELECT ID_FORNEC, FORNEC FROM fornecedores1
+	UNION ALL
+	SELECT ID_FORNEC, FORNEC FROM fornecedores2
+	UNION ALL
+	SELECT ID_FORNEC, FORNEC FROM fornecedores3
+	UNION ALL
+	SELECT ID_FORNEC, FORNEC FROM fornecedores4
+
+SELECT * FROM V_FORNEC_GERAL;
+
+ALTER VIEW V_FORNEC_GERAL
+ AS
+	SELECT 'F1' AS ORIGEM, ID_FORNEC, FORNEC FROM fornecedores1
+	UNION ALL
+	SELECT 'F2' AS ORIGEM, ID_FORNEC, FORNEC FROM fornecedores2
+	UNION ALL
+	SELECT 'F3' AS ORIGEM, ID_FORNEC, FORNEC FROM fornecedores3
+	UNION ALL
+	SELECT 'F4' AS ORIGEM, ID_FORNEC, FORNEC FROM fornecedores4
+
+SELECT * FROM V_FORNEC_GERAL;
+
+--USANDO TEMPTABLES
+use curso
+
+  CREATE TABLE #minhatemporaria   
+  (      
+    campo1 VARCHAR(80) NOT NULL,      
+	campo2 MONEY NOT NULL  
+  ) 
+
+ --inserts
+
+INSERT INTO #minhatemporaria VALUES('Real', 1000) 
+INSERT INTO #minhatemporaria VALUES('Dolar',3000) 
+
+--selects
+SELECT * FROM   #minhatemporaria 
+SELECT campo1, campo2 FROM   #minhatemporaria 
+
+SELECT * INTO   #minhatemporaria2 FROM   #minhatemporaria; 
+SELECT * FROM   #minhatemporaria2 
+
+--fazendo update
+Update #minhatemporaria set campo1 = 'Libra'
+WHERE campo1 = 'Real';
+
+--dropando
+drop table #minhatemporaria, #minhatemporaria2
+
+--inserindo uma coluna na tabela
+select nome_mun into #sensoTemp from senso;
+
+select * from #sensoTemp;
+
+drop table #sensoTemp
+
+--USANDO IF:
+IF 1 + 1 = 2 
+	BEGIN
+		PRINT 'SOMA CORRETA'
+	END
+	ELSE
+		PRINT 'SOMA INCORRETA!'
+
+--USANDO AND:
+IF 1 + 1 = 2 AND 2 + 3 = 4
+	BEGIN
+		PRINT 'SOMA CORRETA'
+	END
+	ELSE
+		PRINT 'SOMA INCORRETA!'
+
+--USANDO AND E O OR
+IF 1 + 1 = 2 AND 2 + 3 = 4 OR 2 + 2 = 4
+	BEGIN
+		PRINT 'SOMA CORRETA'
+	END
+	ELSE
+		PRINT 'SOMA INCORRETA!'
+
+--USANDO IF PARA VERIFICAR DADOS DE TABELA:
+DECLARE @ID_ALUNO INT
+SET @ID_ALUNO = '2';
+
+IF(SELECT COUNT(*) FROM MATRICULA WHERE id_aluno = @ID_ALUNO) = 0
+	BEGIN
+		PRINT 'ALUNO SEM MATRÍCULA!'
+	END
+
+ELSE
+	BEGIN
+		PRINT 'MATERIAS MATRICULADAS:'
+		SELECT B.NOME_DISC, A.PERIODO 
+		FROM MATRICULA A
+		INNER JOIN DISCIPLINA B
+		ON A.id_disciplina = B.id_disciplina
+		AND id_aluno = @ID_ALUNO
+	END;
+
+--USANDO IF ELSE, E ELSE IF
+DECLARE @IDADE INT
+SET @IDADE = 15
+
+IF @IDADE < 18
+	BEGIN 
+		PRINT 'MENOS DO QUE 18 ANOS'
+	END
+ELSE IF @IDADE >= 18 AND @IDADE < 65
+	BEGIN
+		PRINT 'MAIOR DO QUE 18 E MENOR DO QUE 65'
+	END
+ELSE 
+	BEGIN
+		PRINT ('MAIOR DO QUE 65 ANOS')
+	END
+
+--USANDO WHILE
+DECLARE @COUNT INT
+SET @COUNT = 10
+WHILE(SELECT GETDATE() - @COUNT) <= GETDATE()
+	BEGIN
+		PRINT GETDATE() - @COUNT
+		SET @COUNT = @COUNT - 1
+
+		IF(GETDATE() - @COUNT) >= GETDATE()
+			BREAK
+		ELSE
+			CONTINUE
+	END
+GO
+--FAZENDO UMA TABUADA:
+DECLARE @COUNT INT, @TABUADA INT
+SET @COUNT = 1
+SET @TABUADA = 8
+
+WHILE(@COUNT <= 10)
+	BEGIN
+		PRINT CAST(@COUNT AS VARCHAR) + N' * ' + CAST(@TABUADA AS VARCHAR) + N' = '  + CAST(@COUNT * @TABUADA AS VARCHAR)
+		SET @COUNT = @COUNT + 1;
+	END
+
+--VERIFICA SE O ITEM É PAR OU ÍMPAR
+Declare @Val1 int,
+		@Val2 int,
+		@mod int
+SET @Val1 = 1
+SET @VAL2 = 10
+
+WHILE @Val1 <= @Val2
+	BEGIN
+		IF(@VAL1 % 2 = 0)
+			BEGIN
+				PRINT('O NÚMERO ' + CONVERT(VARCHAR(2), @VAL1) + ' É PAR!' )
+			END
+		ELSE
+		begin
+			PRINT('O NÚMERO ' + CONVERT(VARCHAR(2), @VAL1) + ' É IMPAR!')
+		end
+		SET @Val1 = @Val1 + 1;
+	END
+
+--Populando tabela com while:
+
+use curso;
+
+CREATE TABLE DIM_DATA(
+	 ID_DIM_DATA int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+	 DATA date NOT NULL,
+	 ANO smallint NOT NULL,
+	 MES smallint NOT NULL,
+	 DIA smallint NOT NULL,
+	 DIA_SEMANA smallint NOT NULL,
+	 DIA_ANO smallint NOT NULL,
+	 ANO_BISSEXTO char(1) NOT NULL,
+	 DIA_UTIL char(1) NOT NULL,
+	 FIM_SEMANA char(1) NOT NULL,
+	 FERIADO char(1) NOT NULL,
+	 NOME_FERIADO varchar(30) NULL,
+	 NOME_DIA_SEMANA varchar(15) NOT NULL,
+	 NOME_DIA_SEMANA_ABREV char(3) NOT NULL,
+	 NOME_MES varchar(15) NOT NULL,
+	 NOME_MES_ABREV char(3) NOT NULL,
+	 QUINZENA smallint NOT NULL,
+	 BIMESTRE smallint NOT NULL,
+	 TRIMESTRE smallint NOT NULL,
+	 SEMESTRE smallint NOT NULL,
+	 NR_SEMANA_MES smallint NOT NULL,
+	 NR_SEMANA_ANO smallint NOT NULL,
+	 ESTACAO_ANO varchar(15) NOT NULL,
+	 DATA_POR_EXTENSO varchar(50) NOT NULL,
+	 EVENTO varchar(50) NULL
+);
+
+ DECLARE @dataInicial date, 
+         @dataFinal date, 
+		 @data date, 
+		 @ano smallint, 
+		 @mes smallint, 
+		 @dia smallint, 
+		 @diaSemana smallint, 
+		 @diaUtil char(1), 
+		 @fimSemana char(1), 
+		 @feriado char(1), 
+		 @preFeriado char(1), 
+		 @posFeriado char(1), 
+		 @nomeFeriado varchar(30), 
+		 @nomeDiaSemana varchar(15), 
+		 @nomeDiaSemanaAbrev char(3), 
+		 @nomeMes varchar(15), 
+		 @nomeMesAbrev char(3),
+		 @bimestre smallint, 
+		 @trimestre smallint, 
+		 @nrSemanaMes smallint, 
+		 @estacaoAno varchar(15), 
+		 @dataPorExtenso varchar(50)
+
+set @dataInicial = '01/01/2020'
+set @dataFinal = '31/12/2023'
+
+while @dataInicial <= @dataFinal
+begin
+ set @data = @dataInicial
+ set @ano = year(@data)
+ set @mes = month(@data)
+ set @dia = day(@data)
+ set @diaSemana = datepart(weekday,@data)
+
+ if @diaSemana in (1,7) 
+ set @fimSemana = 'S'
+ else set @fimSemana = 'N'
+
+ /* feriados locais/regionais e aqueles que não possuem data fixa 
+ (carnaval, páscoa e corpus cristis) tb devem ser adicionados aqui */
+
+ if (@mes = 1 and @dia=1) or (@mes = 12 and @dia = 31) --confraternização universal
+ set @nomeFeriado = 'confraternização universal'
+ else 
+ if (@mes = 4 and @dia=21) --tiradentes
+ set @nomeFeriado = 'tiradentes'
+ else 
+ if (@mes = 5 and @dia= 1) --dia do trabalho
+ set @nomeFeriado = 'dia do trabalho'
+ else 
+ if (@mes = 9 and @dia = 7) --independência do brasil
+ set @nomeFeriado = 'independência do brasil'
+ else 
+ if (@mes = 10 and @dia = 12) --nossa senhora aparecida
+ set @nomeFeriado = 'nossa senhora aparecida'
+ else
+ if (@mes = 11 and @dia =2) --finados
+ set @nomeFeriado = 'finados'
+ else
+ if (@mes = 11 and @dia =15) --proclamação da república
+ set @nomeFeriado = 'proclamação da república'
+ else
+ if (@mes = 12 and @dia=25) --natal
+ set @nomeFeriado = 'natal'
+ else set @nomeFeriado = null
+
+ 
+ if (@mes = 1 and @dia = 1) or --confraternização universal
+ (@mes = 4 and @dia = 21) or --tiradentes
+ (@mes = 5 and @dia = 1) or --dia do trabalho
+ (@mes = 9 and @dia = 7) or --independência do brasil
+ (@mes = 10 and @dia = 12) or --nossa senhora aparecida
+ (@mes = 11 and @dia = 2) or --finados
+ (@mes = 11 and @dia = 15) or --proclamação da república
+ (@mes = 12 and @dia = 25) --natal
+ set @feriado = 'S'
+ else set @feriado = 'N'
+
+
+ set @nomeMes = case when @mes = 1 then 'janeiro'
+ when @mes = 2 then 'fevereiro'
+ when @mes = 3 then 'março'
+ when @mes = 4 then 'abril'
+ when @mes = 5 then 'maio'
+ when @mes = 6 then 'junho'
+ when @mes = 7 then 'julho'
+ when @mes = 8 then 'agosto'
+ when @mes = 9 then 'setembro'
+ when @mes = 10 then 'outubro'
+ when @mes = 11 then 'novembro'
+ when @mes = 12 then 'dezembro' end
+
+ set @nomeMesAbrev = case when @mes = 1 then 'jan'
+ when @mes = 2 then 'fev'
+ when @mes = 3 then 'mar'
+ when @mes = 4 then 'abr'
+ when @mes = 5 then 'mai'
+ when @mes = 6 then 'jun'
+ when @mes = 7 then 'jul'
+ when @mes = 8 then 'ago'
+ when @mes = 9 then 'set'
+ when @mes = 10 then 'out'
+ when @mes = 11 then 'nov'
+ when @mes = 12 then 'dez' end
+
+ if @fimSemana = 'S' or @feriado = 'S'
+ set @diaUtil = 'N'
+ else set @diaUtil = 'S'
+
+ set @nomeDiaSemana = case when @diaSemana = 1 then 'domingo'
+ when @diaSemana = 2 then 'segunda-feira'
+ when @diaSemana = 3 then 'terça-feira'
+ when @diaSemana = 4 then 'quarta-feira'
+ when @diaSemana = 5 then 'quinta-feira'
+ when @diaSemana = 6 then 'sexta-feira'
+ else 'sábado' end
+
+ set @nomeDiaSemanaAbrev = case when @diaSemana = 1 then 'dom'
+ when @diaSemana = 2 then 'seg'
+ when @diaSemana = 3 then 'ter'
+ when @diaSemana = 4 then 'qua'
+ when @diaSemana = 5 then 'qui'
+ when @diaSemana = 6 then 'sex'
+ else 'sáb' end
+
+ set @bimestre = case when @mes in (1,2) then 1
+ when @mes in (3,4) then 2
+ when @mes in (5,6) then 3
+ when @mes in (7,8) then 4
+ when @mes in (9,10) then 5
+ else 6 end
+
+ set @trimestre = case when @mes in (1,2,3) then 1
+ when @mes in (4,5,6) then 2
+ when @mes in (7,8,9) then 3
+ else 4 end
+
+ set @nrSemanaMes = case when @dia < 8 then 1
+ when @dia < 15 then 2
+ when @dia < 22 then 3
+ when @dia < 29 then 4
+ else 5 end
+--20 Mar 2017 - outono
+--21 Jun 2017 - inverno
+--22 Set 2017 - primavera
+--21 Dez 2017 - verao
+
+ if @data between cast('23/09/'+convert(char(4),@ano) as date) 
+	and cast('20/12/'+convert(char(4),@ano) as date)
+ set @estacaoAno = 'primavera'
+ else if @data between cast('21/03/'+convert(char(4),@ano) as date) 
+ and cast('20/06/'+convert(char(4),@ano) as date)
+ set @estacaoAno = 'outono'
+ else if @data between cast('21/06/'+convert(char(4),@ano) as date) 
+ and cast('22/09/'+convert(char(4),@ano) as date)
+ set @estacaoAno = 'inverno'
+ else -- @data between 21/12 e 20/03
+ set @estacaoAno = 'verão'
+
+INSERT INTO DIM_DATA
+ SELECT @data
+ ,@ano
+ ,@mes
+ ,@dia
+ ,@diaSemana
+ ,datepart(dayofyear,@data) --DIA_ANO
+ ,case when (@ano % 4) = 0 then 'S' else 'N' end -- ANO_BISSEXTO
+ ,@diaUtil
+ ,@fimSemana
+ ,@feriado
+ ,@nomeFeriado
+ ,@nomeDiaSemana
+ ,@nomeDiaSemanaAbrev
+ ,@nomeMes
+ ,@nomeMesAbrev
+ ,case when @dia < 16 then 1 else 2 end -- QUINZENA
+ ,@bimestre
+ ,@trimestre
+ ,case when @mes < 7 then 1 else 2 end -- SEMESTRE
+ ,@nrSemanaMes
+ ,datepart(wk,@data)--NR_SEMANA_ANO, smallint
+ ,@estacaoAno
+ ,lower(@nomeDiaSemana + ', ' + cast(@dia as varchar) + ' de ' + @nomeMes + ' de ' + cast(@ano as varchar))
+ ,null--EVENTO, varchar(50))
+
+ set @dataInicial = dateadd(day,1,@dataInicial) 
+end
+
+SELECT * FROM DIM_DATA;
+
+--USANDO TRY CATCH:
+BEGIN TRY
+	SELECT 1/0;
+END TRY
+BEGIN CATCH
+	SELECT	ERROR_NUMBER(),
+			ERROR_SEVERITY(),
+			ERROR_STATE(),
+			ERROR_PROCEDURE(),
+			ERROR_LINE(),
+			ERROR_MESSAGE()
+END CATCH
+
+--CURSORES:
+USE CURSO;
+
+DECLARE @MINHAVARIAVEL VARCHAR(100),
+		@ID_ALUNO INT
+--CRIAÇÃO INTEIRA DE UM CURSOR:
+DECLARE MEU_CURSOR 
+CURSOR local FOR SELECT id_aluno, NOME FROM alunos
+Open MEU_CURSOR
+FETCH NEXT FROM MEU_CURSOR INTO @ID_ALUNO, @MINHAVARIAVEL
+WHILE (@@FETCH_STATUS = 0)
+	BEGIN
+		PRINT CAST(@ID_ALUNO AS VARCHAR(4)) + ' - ' + @MINHAVARIAVEL + ' FETCH_STATUS = ' + CAST(@@FETCH_STATUS AS VARCHAR(10))
+		FETCH NEXT FROM MEU_CURSOR INTO @ID_ALUNO, @MINHAVARIAVEL
+	END
+PRINT 'FETCH_STATUS = ' + CAST(@@FETCH_STATUS AS VARCHAR(10))
+CLOSE MEU_CURSOR
+DEALLOCATE MEU_CURSOR
+
+--EXEMPLO 2:
+use curso
+ select a.BusinessEntityID codpessoa,
+	    a.FirstName nome,
+		a.LastName sobrenome,
+		cast('' as varchar(100)) nomecompleto
+		--INSERINDO TODOS OS DADOS E CRIANDO A TABELA CLIFOR:
+        into clifor
+  from AdventureWorks2017.person.person a
+
+select * from clifor
+
+--DEMOROU ALGO EM TORNO DE 4 MINUTOS
+DECLARE @codpessoa   INT, 
+        @primeironome VARCHAR(50), 
+        @sobrenome    VARCHAR(50), 
+        @nomecompleto VARCHAR(100) 
+DECLARE CURSOR1 CURSOR FOR SELECT codpessoa, nome, sobrenome FROM clifor
+
+OPEN CURSOR1
+
+FETCH NEXT FROM CURSOR1 INTO @CODPESSOA, @PRIMEIRONOME, @SOBRENOME
+WHILE(@@FETCH_STATUS = 0)
+	BEGIN
+		UPDATE clifor SET nomecompleto = @primeironome + ' ' + @sobrenome
+		WHERE @codpessoa = codpessoa
+
+		FETCH NEXT FROM CURSOR1 INTO @CODPESSOA, @PRIMEIRONOME, @SOBRENOME
+	END
+CLOSE CURSOR1
+DEALLOCATE CURSOR1;
+
+--DEMOROU APENAS 5 SEGUNDOS, OU SEJA, QUANDO HÁ CHAVE PRIMARIA PARA AS TABELAS, O PROCESSO DO CURSOR FICA MUITO MAIS RÁPIDO. 
+ALTER TABLE CLIFOR ADD CONSTRAINT PK_ID1 
+PRIMARY KEY (CODPESSOA);
+
+create table cli_nome
+(cod_cliente int primary key not null,
+ nome_completo varchar(100) not null
+ );
+ go
+
+DECLARE @codcliente int, 
+	    @primeironome VARCHAR(30), 
+		@sobrenome VARCHAR(60), 
+		@nomecompleto VARCHAR(90)
+
+DECLARE CURSO1 CURSOR FOR 
+SELECT BusinessEntityID, FirstName, LastName FROM	AdventureWorks2017.Person.Person
+
+OPEN CURSO1
+
+FETCH NEXT FROM CURSO1 INTO @codcliente, @PRIMEIRONOME, @SOBRENOME
+WHILE(@@FETCH_STATUS = 0)
+	BEGIN
+		SET @nomecompleto = @primeironome + ' ' + @sobrenome
+		INSERT INTO cli_nome VALUES (@codcliente, @nomecompleto)
+		FETCH NEXT FROM CURSO1 INTO @codcliente, @PRIMEIRONOME, @SOBRENOME
+	END
+
+CLOSE CURSO1
+DEALLOCATE CURSO1
+
+select * from cli_nome;
+
+--EXEMPLO 4
+USE curso;
+GO
+
+create table tabela_clientes(
+id_cliente int not null primary key,
+nome_cliente varchar(200),
+cpf_cliente varchar(20)
+)
+go
+--delete from tabela_clientes
+insert into tabela_clientes values
+(1,'Fabio', NULL),
+(2,'Jorge', 21325658454),
+(3,'Jack', NULL),
+(4,'Peter', 34132567878)
+
+DECLARE	@ID_CLEINTE INT,
+		@CPF_CLIENTE VARCHAR(20),
+		@NOME_CLIENTE VARCHAR(200)
+
+DECLARE NOVO_CURSOR CURSOR FOR
+SELECT id_cliente, NOME_CLIENTE, cpf_cliente FROM tabela_clientes;
+
+OPEN NOVO_CURSOR
+
+FETCH NEXT FROM NOVO_CURSOR INTO @ID_CLEINTE, @NOME_CLIENTE, @CPF_CLIENTE
+
+WHILE @@FETCH_STATUS = 0 
+BEGIN
+
+	IF @CPF_CLIENTE IS NULL
+	BEGIN
+		UPDATE tabela_clientes SET cpf_cliente = 'ATUALIZAR CLIENTE' WHERE cpf_cliente IS NULL
+		AND id_cliente = @ID_CLEINTE;
+	END
+	FETCH NEXT FROM NOVO_CURSOR INTO @ID_CLEINTE, @NOME_CLIENTE, @CPF_CLIENTE
+END
+
+CLOSE NOVO_CURSOR
+DEALLOCATE NOVO_CURSOR
+
+SELECT * FROM tabela_clientes; 
+
+--EXEMPLO 5:
+create table contapagparc
+(
+ num_doc  int ,
+ dtvenc  date,
+ parcela  int
+ );
+
+--verificando estrutura
+select  num_doc,dtvenc from contapagparc
+select *  from contapagparc
+
+
+insert into contapagparc values ('1',getdate()+30,'')
+insert into contapagparc values ('1',getdate()+45,'')
+insert into contapagparc values ('1',getdate()+60,'')
+
+insert into contapagparc values ('2',getdate()+15,'')
+insert into contapagparc values ('2',getdate()+20,'')
+insert into contapagparc values ('2',getdate()+25,'')
+
+DECLARE @num_doc AS INT,
+		@dtvenc AS DATE, 
+		@cont AS INT =0, 
+		@num_doc_aux AS INT 
+
+DECLARE CURSOR_PARC CURSOR FOR	SELECT num_doc, dtvenc 
+								FROM contapagparc
+								ORDER BY num_doc, dtvenc asc
+
+OPEN CURSOR_PARC 
+FETCH NEXT FROM CURSOR_PARC INTO @num_doc, @dtvenc 
+
+While @@FETCH_STATUS = 0 
+BEGIN
+
+IF @num_doc_aux <> @num_doc 
+	BEGIN
+		SET @cont = 1;
+		SET @num_doc_aux = @num_doc
+	END
+ELSE
+	BEGIN
+		SET @cont = @cont + 1
+		SET @num_doc_aux = @num_doc
+	END
+
+UPDATE contapagparc SET parcela = @cont 
+where num_doc = @num_doc and dtvenc = @dtvenc;
+
+FETCH NEXT FROM CURSOR_PARC INTO @num_doc, @dtvenc 
+END
+
+CLOSE CURSOR_PARC
+DEALLOCATE CURSOR_PARC
+
+SELECT * FROM contapagparc;
+
+--EXEMPLO 6: ROLAGEM DE CURSORES
+CREATE TABLE ##DADOS 
+(
+  NUMERO int NULL,
+  NOME VARCHAR(20),
+ );
+ 
+INSERT INTO ##DADOS VALUES (1,'Jack')
+INSERT INTO ##DADOS VALUES (2,'Peter')
+INSERT INTO ##DADOS VALUES (3,'Sam')
+INSERT INTO ##DADOS VALUES (4,'Malcon')
+INSERT INTO ##DADOS VALUES (5,'David')
+INSERT INTO ##DADOS VALUES (6,'Marlos')
+INSERT INTO ##DADOS VALUES (7,'Greg')
+INSERT INTO ##DADOS VALUES (8,'Jorge')
+INSERT INTO ##DADOS VALUES (9,'Richard')
+INSERT INTO ##DADOS VALUES (10,'Anne')
+
+DECLARE CDADOS SCROLL CURSOR FOR SELECT NUMERO, NOME FROM ##DADOS;
+
+OPEN CDADOS
+
+--USAMOS PARA VERIFICAR A QUANTIDADE DE LINAHS
+SELECT @@CURSOR_ROWS
+
+--PEGA O PRIMEIRO VALOR DO CURSOR 
+FETCH ABSOLUTE 1 FROM CDADOS;
+
+--PEGA O PRÓXIMO VALOR DO CURSOR
+FETCH NEXT FROM CDADOS;
+
+--PEGA O ÚLTIMO VALOR
+FETCH LAST FROM CDADOS; 
+
+--PEGA O REGISTRO ANTERIOR DA LINHA ATUAL
+FETCH PRIOR FROM CDADOS; 
+
+--INDO PARA A SEGUNDA LINHA
+FETCH ABSOLUTE 2 FROM CDADOS;
+
+--AVANÇA 3 VALORES NO CURSOR EM RELAÇÃO AO VALOR ATUAL
+FETCH RELATIVE 3 FROM CDADOS;
+
+--RETROCEDE 2 VALORES EM RELAÇÃO AO ATUAL
+FETCH RELATIVE -2 FROM CDADOS;
+
+CLOSE CDADOS
+DEALLOCATE CDADOS
+
+--EXEMPLO 7: 
+
+DECLARE @ID_ALUNO INT,
+		@NOME VARCHAR(30),
+		@NOME_DISC VARCHAR(30),
+		@PERIODO VARCHAR(10)
+
+DECLARE C_ALUNOS CURSOR FOR SELECT ID_ALUNO, NOME FROM alunos
+
+OPEN C_ALUNOS
+FETCH NEXT FROM C_ALUNOS INTO @ID_ALUNO, @NOME
+
+
+WHILE @@FETCH_STATUS = 0
+	BEGIN 
+	--IMPRIME O NOME DO ALUNO 
+		PRINT 'NOME DO ALUNO: ' + @NOME;
+	--IMPRIME TODAS AS DISCIPLINAS QUE ESSE ALUNO ESTÁ MATRICULADO
+		PRINT 'DISCIPLINA: '
+
+	--ABRINDO UM CURSOR DENTRO DE OUTRO PARA IDENTIFICAR EM QUAIS DISCIPLINAS O ALUNO ESTÁ MATRICULADO
+		DECLARE C_DISCIPLINA CURSOR FOR 
+		SELECT B.NOME_DISC, A.PERIODO 
+		FROM MATRICULA A
+		INNER JOIN disciplina B
+		ON A.id_disciplina = B.id_disciplina
+		WHERE A.id_aluno = @ID_ALUNO
+
+		OPEN C_DISCIPLINA
+
+		FETCH NEXT FROM C_DISCIPLINA INTO @NOME_DISC, @PERIODO
+	
+	--IMPRIME O NOME DE CADA MATRÍCULA
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		PRINT @NOME_DISC
+
+		FETCH NEXT FROM C_DISCIPLINA INTO @NOME_DISC, @PERIODO
+	END
+
+CLOSE C_DISCIPLINA
+DEALLOCATE C_DISCIPLINA
+
+--SEPARA CADA REGISTRO
+PRINT '-----------'
+
+FETCH NEXT FROM C_ALUNOS INTO @ID_ALUNO, @NOME
+END
+
+CLOSE C_ALUNOS
+DEALLOCATE C_ALUNOS
+GO
+
+--EXEMPLOS DE FUNÇÃO ESCALAR: 
+
+--Criando uma função
+CREATE FUNCTION FN_TRIM(@ST VARCHAR(1000))
+RETURNS VARCHAR(1000)
+BEGIN
+	RETURN (LTRIM(RTRIM(@ST)))
+END;
+GO
+
+SELECT '>' + ('       SILVA TELLES       ') + '<' 
+UNION 
+--EXECUTANDO
+SELECT '>' + DBO.FN_TRIM('    SILVA TELLES    ') + '<';
+GO
+--ALTERANDO FUNÇÃO:
+
+ALTER FUNCTION FN_TRIM(@ST VARCHAR(1000))
+RETURNS VARCHAR(500)
+BEGIN
+	RETURN (LTRIM(RTRIM(@ST)))
+END;
+GO
+
+--APAGANDO UMA FUNÇÃO:
+DROP FUNCTION FN_TRIM;
+GO
+
+--MAIS EXEMPLOS
+CREATE FUNCTION SOMA(@VAL1 INT, @VAL2 INT)
+RETURNS INT
+BEGIN
+	RETURN (@VAL1 + @VAL2);
+END
+GO
+
+SELECT 'A soma é: ' + CAST(DBO.SOMA(5,2) AS VARCHAR(10));
+
+create table #testesoma
+ (val1 int,
+  val2 int
+  )
+  --inserindo valores
+  insert into #testesoma values (10,2),(5,4),(89,3)
+
+SELECT	'A Soma entre os valores ' + CAST(val1 AS VARCHAR(5)) + 
+		' e ' + CAST(val2 AS VARCHAR(5)) + 
+		' é igual a ' + CAST(DBO.SOMA(VAL1, VAL2) AS VARCHAR(5)) FROM #TESTESOMA; 
+
+CREATE TABLE SALDOS
+ (NUM_CONTA  VARCHAR(10) NOT NULL PRIMARY KEY,
+  SALDO_INICIAL DECIMAL(10,2),
+  SALDO_FINAL   DECIMAL(10,2)
+  );
+
+INSERT INTO SALDOS VALUES ('123-9',1000,1000),('124-7',1000,500),('125-6',500,1000);
+GO
+
+CREATE FUNCTION SALDO(@CONTA VARCHAR(10))
+RETURNS DECIMAL
+AS
+BEGIN
+	DECLARE @SALDO DECIMAL 
+	SELECT @SALDO = SALDO_FINAL - SALDO_INICIAL
+		FROM SALDOS
+		WHERE NUM_CONTA = @CONTA;
+	IF @SALDO = 0
+	SET @SALDO = 0
+	RETURN @SALDO
+END
+GO
+
+SELECT	NUM_CONTA,
+		SALDO_INICIAL, 
+		SALDO_FINAL,
+		DBO.SALDO(NUM_CONTA) AS DIF_SALDO
+		FROM SALDOS
+GO
+
+CREATE FUNCTION DBO.FUNC_DIAS(@DIA INT, @DTI DATETIME, @DTF DATETIME)
+RETURNS @tbl TABLE(SEQ INT, DT DATETIME)
+AS
+BEGIN
+
+	DECLARE @CONT INT
+	SET @CONT = 1;
+	WHILE @DTI <= @DTF
+	BEGIN
+
+		INSERT INTO @TBL VALUES(@CONT, @DTI) 
+		SET @DTI = DATEADD(DAY, @DIA, @DTI)
+		SET @CONT = @CONT + 1;
+	END
+	RETURN
+END
+GO
+
+SELECT * FROM DBO.FUNC_DIAS(3, GETDATE(), GETDATE()+12)
+GO
+
+CREATE FUNCTION FN_CIDADE(@UF VARCHAR(2))
+RETURNS TABLE 
+AS 
+	RETURN(
+		SELECT NOME_MUN, POPULACAO FROM SENSO
+		WHERE UF = @UF
+	)
+GO
+
+SELECT * FROM FN_CIDADE('TO')
+ORDER BY populacao;
+GO
+
+--EXEMPLO 6
+CREATE FUNCTION FN_ESTADO_POP (@REGIAO VARCHAR(20))
+RETURNS TABLE
+AS
+RETURN(
+	SELECT	A.UF, B.ESTADO, B.REGIAO, SUM(A.POPULACAO) AS TOTAL
+			FROM SENSO A
+			INNER JOIN REGIAO B
+			ON A.cod_uf = B.cod_uf
+			WHERE B.regiao = @REGIAO
+			GROUP BY A.UF, B.estado, B.regiao
+)
+GO
+
+SELECT * FROM FN_ESTADO_POP ('NORTE');
+GO
+--PRCEDURES:
+
+--criando procedure sem parâmetros
+CREATE PROCEDURE PRC_OLA
+AS
+BEGIN
+	PRINT 'OLÁ MUNDO'
+END
+GO
+
+--CRIANDO PROCEDURES COM PARÂMETROS
+
+CREATE PROCEDURE PRC_OLA2(@MENSAGEM VARCHAR(100))
+AS
+BEGIN
+	PRINT @MENSAGEM
+END
+GO
+
+EXEC PRC_OLA;
+EXEC PRC_OLA2 'EU VENHO EM PÁS';
+GO
+--Exemplo 2:
+CREATE PROCEDURE PRC_MSG
+AS
+BEGIN
+	PRINT 'SEJA BEM-VINDO'
+
+	IF DATEPART(HOUR, GETDATE()) > 0 AND  DATEPART(HOUR, GETDATE()) < 12 
+		PRINT('BOM DIA!')
+	ELSE IF DATEPART(HOUR, GETDATE()) >= 12 AND  DATEPART(HOUR, GETDATE()) < 18
+		PRINT ('BOA TARDE!')
+	ELSE
+		PRINT('BOA NOITE!')
+END
+GO
+
+EXEC PRC_MSG
+GO
+
+CREATE PROCEDURE PRC_QUADRADO(@VALOR INT)
+AS
+BEGIN
+	SELECT @VALOR * @VALOR AS QUADRADO
+END
+
+EXEC PRC_QUADRADO 5
+GO
+
+use curso
+go
+
+CREATE PROCEDURE PRC_IMC(@PESO DECIMAL(5,2), @ALTURA DECIMAL(5,2))
+AS
+BEGIN
+
+	DECLARE @IMC DECIMAL(5,2)
+	SET @IMC = @PESO / (@ALTURA * @ALTURA)
+
+	IF @IMC < 17
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! MUITO ABAIXO DO PESO'
+	ELSE IF @IMC >= 17 AND @IMC < 18.5
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! ABAIXO DO PESO'
+	ELSE IF @IMC >= 18.5 AND @IMC < 25
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! PESO NORMAL'
+	ELSE IF @IMC >= 25 AND @IMC < 30
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! ACIMA DO PESO'
+	ELSE IF @IMC >= 30 AND @IMC < 35
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! OBESIDADE 1'
+	ELSE IF @IMC >= 35 AND @IMC < 40
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! OBESIDADE 2 (SEVERA)'
+	ELSE IF @IMC >= 40
+		PRINT 'SEU IME É: ' + CAST(@IMC AS VARCHAR) +  '! OBESIDADE 3 (MÓRBIDA)'
+
+END
+GO
+
+EXEC PRC_IMC 49, 1.68
+GO
+
+CREATE PROCEDURE CALCULADORA (@OPERACAO CHAR(1), @VAL1 DECIMAL(5,2), @VAL2 DECIMAL(5,2))
+AS
+BEGIN
+
+	DECLARE @RES DECIMAL(5,2)
+	IF @OPERACAO = 'A'
+		SELECT @VAL1 + @VAL2
+	ELSE IF @OPERACAO = 'D'
+		SELECT @VAL1 / @VAL2
+	ELSE IF @OPERACAO = 'S'
+		SELECT @VAL1 - @VAL2
+	ELSE IF @OPERACAO = 'M'
+		SELECT @VAL1 * @VAL2
+	ELSE
+		SELECT 'OPERAÇÃO INVÁLIDO'
+END
+GO
+
+EXEC CALCULADORA M, 2, 5
+go
+
+--EXEMPLO 3:
+USE CURSO
+
+CREATE TABLE CAD_PESSOA 
+(
+    ID_PESSOA INT NOT NULL PRIMARY KEY,
+    NOME VARCHAR(50),
+    EMAIL VARCHAR(30),
+    SITUACAO CHAR(1),
+    CONSTRAINT CK_SITUA CHECK(SITUACAO IN('B','A'))
+    );
+
+GO
+CREATE PROCEDURE SP_CRUD @V_OPER CHAR(1), @V_ID_PESSOA  INTEGER,
+@V_NOME VARCHAR(50), @V_EMAIL VARCHAR(30),@V_SITUACAO CHAR(1)
+AS
+BEGIN
+DECLARE @V_SID_PESSOA INTEGER,
+		@V_SNOME VARCHAR(50),
+		@V_SEMAIL VARCHAR(30),
+		@V_SSITUACAO CHAR(1);
+	
+BEGIN TRANSACTION	
+IF (@V_OPER = 'I')
+BEGIN
+	IF(@V_ID_PESSOA IS NULL OR @V_ID_PESSOA = '' OR @V_NOME IS NULL OR @V_NOME = '' OR @V_EMAIL IS NULL OR @V_EMAIL = '')
+	BEGIN
+		ROLLBACK;
+		PRINT 'CAMPOS INVÁLIDOS'
+		GOTO FIM_ERRO
+	END
+	ELSE
+		INSERT INTO CAD_PESSOA(ID_PESSOA, NOME, EMAIL, SITUACAO) VALUES(@V_ID_PESSOA, @V_NOME, @V_EMAIL, 'A');
+		GOTO FIM_CERTO
+END
+
+IF(@V_OPER = 'A')
+BEGIN
+	IF(@V_ID_PESSOA IS NULL OR @V_ID_PESSOA = '')
+	BEGIN	
+		ROLLBACK;
+		PRINT 'CAMPOS INVÁLIDOS'
+		GOTO FIM_ERRO
+	END
+	ELSE
+	BEGIN	
+		UPDATE CAD_PESSOA SET NOME = ISNULL(@V_NOME, NOME), EMAIL = ISNULL(@V_EMAIL, EMAIL), SITUACAO = ISNULL(@V_SITUACAO, SITUACAO)
+		WHERE ID_PESSOA = @V_ID_PESSOA
+		GOTO FIM_CERTO
+	END
+END
+
+IF(@V_OPER = 'D')
+BEGIN
+	IF(@V_ID_PESSOA IS NULL OR @V_ID_PESSOA = '')
+	BEGIN	
+		ROLLBACK;
+		PRINT 'CAMPOS INVÁLIDOS'
+		GOTO FIM_ERRO
+	END
+	ELSE
+	BEGIN	
+		DELETE FROM CAD_PESSOA WHERE ID_PESSOA = @V_ID_PESSOA
+		GOTO FIM_CERTO
+	END
+END
+
+
+IF(@V_OPER = 'S')
+BEGIN
+		SELECT @V_ID_PESSOA = ID_PESSOA, @V_NOME = NOME, @V_EMAIL = EMAIL, @V_SITUACAO = SITUACAO
+		FROM CAD_PESSOA
+		WHERE ID_PESSOA = @V_ID_PESSOA
+
+		PRINT CONCAT ('ID:', @V_ID_PESSOA)
+		PRINT 'NOME: ' + @V_NOME
+		PRINT 'EMAIL: ' + @V_EMAIL
+		PRINT 'SITUAÇÃO: ' + @V_SITUACAO
+		
+		GOTO FIM_CERTO
+
+FIM_CERTO:
+COMMIT;
+PRINT'DADOS SELECIONADOS, INSERIDOS OU ATUALIZADOS COM SUCESSO'
+GOTO FIM
+
+FIM_ERRO:
+PRINT'ERRO NA SELEÇÃO, INSERÇÃO OU ATUALIZAÇÃO DOS DADOS'
+
+FIM:
+PRINT 'FINALIZADO!'
+
+END
+
+END
+GO
+
+EXECUTE SP_CRUD 'I',1,'JONHY','JONHY@JONHY.COM','A';
+EXECUTE SP_CRUD 'I',2,'PETER','PETER@PETER.COM','A';
+EXECUTE SP_CRUD 'I',3,'DEREK','DEREK@DEREK.COM','A';
+EXECUTE SP_CRUD 'I',4,'NULL','JP@JP.COM','A';
+
+--TESTES DE ERRO
+
+EXECUTE SP_CRUD 'I',5,NULL,'DEREK@DEREK.COM','A';
+
+SELECT * FROM CAD_PESSOA;
+
+EXECUTE SP_CRUD @V_OPER='S',@V_ID_PESSOA=4,@V_NOME=NULL,@V_EMAIL=NULL,@V_SITUACAO=NULL;
+
+--UPDATE
+EXECUTE SP_CRUD @V_OPER='A',@V_ID_PESSOA=4,@V_NOME='NUNO',@V_EMAIL='NUNO@NUNO.COM',@V_SITUACAO='A'
+
+ --SELECT 
+EXECUTE SP_CRUD @V_OPER='S',@V_ID_PESSOA=2,@V_NOME=NULL,@V_EMAIL=NULL,@V_SITUACAO=NULL;
+
+--DELETE
+EXECUTE SP_CRUD @V_OPER='D',@V_ID_PESSOA=4,@V_NOME=NULL,@V_EMAIL=NULL,@V_SITUACAO=NULL;
+
+--EXEMPLO
+EXECUTE SP_CRUD 'D',4,NULL,NULL,NULL
+
+ --SELECT 
+EXECUTE SP_CRUD @V_OPER='S',@V_ID_PESSOA=4,@V_NOME=NULL,@V_EMAIL=NULL,@V_SITUACAO=NULL;
+
+DROP PROCEDURE SP_CRUD
+
+--TRIGGERS:
+USE CURSO;
+
+CREATE TABLE FUNC (
+ MATRICULA INT IDENTITY(1,1) PRIMARY KEY,
+ NOME VARCHAR(30) NOT NULL,
+ SOBRENOME VARCHAR (30) NOT NULL,
+ ENDERECO  VARCHAR (30) NOT NULL,
+ CIDADE    VARCHAR (30) NOT NULL,
+ ESTADO    VARCHAR (2) NOT NULL,
+ DATA_NASC  DATETIME
+ ) ; 
+
+insert into func values ('Steve','Morse','Rua 13','JUNDIAI','SP','1977-11-05')
+insert into func values ('Joao','Pedro','Rua 14','SÃO PAULO','SP','1980-27-10')
+insert into func values ('Maria','Clara','Rua 15','RIBERAO PRETO','SP','1985-05-05')
+insert into func values ('Pedro','Luiz','Rua 16','CAMPINAS','SP','1990-12-09')
+
+SELECT * FROM FUNC;
+
+create table auditoria_salario (
+matricula INT not null,
+sal_antes decimal(10,2)  not null,
+sal_depois decimal(10,2)  not null,
+usuario varchar(100) not null,
+data_atualizacao datetime not null
+);
+
+CREATE TABLE SALARIO 
+( matricula INT NOT NULL,
+  SALARIO DECIMAL(10,2) NOT NULL
+  );
+
+insert into SALARIO values (1,1000)
+insert into SALARIO values (2,1500)
+insert into SALARIO values (3,2000)
+insert into SALARIO values (4,2500)
+GO
+
+CREATE trigger TRG_SALARIO
+ON SALARIO 
+AFTER UPDATE 
+AS
+BEGIN
+		declare @sal_antigo decimal(10,2)
+		declare @sal_novo decimal(10,2)
+		declare @matricula int
+			
+		select @matricula  = matricula from inserted
+		select @sal_antigo = SALARIO from deleted
+		select @sal_novo   = SALARIO from inserted
+
+		INSERT INTO auditoria_salario values(@matricula, isnull(@sal_antigo, 0), @sal_novo, SYSTEM_USER, GETDATE())
+END
+GO
+
+
+
+update salario set salario ='2500' where matricula='1'
+update salario set salario ='3000' where matricula='2'
+update salario set salario ='3500' where matricula='3'
+update salario set salario ='4000' where matricula='4'
+
+SELECT * FROM SALARIO;
+SELECT * FROM auditoria_salario
+
+--DESABILITANDO A TRIGGER
+DISABLE TRIGGER TRG_SALARIO ON SALARIO;
+
+--ESSA TRIGGER NÃO ALTERA REGISTROS EM MASSA. ENTÃO OU DA ERRO, OU ALTERA APENAS UM. EXEMPLO:
+update salario set salario = salario * 1.06
+
+--SEGUNDA TRIGGER
+GO
+
+CREATE TRIGGER TRG_AUD_SAL
+ON SALARIO
+AFTER UPDATE
+AS
+BEGIN
+	DECLARE @MATRICULA_AUX INT
+	DECLARE CURSOR_PROCESSOS CURSOR FOR 
+			SELECT MATRICULA FROM INSERTED
+			OPEN CURSOR_PROCESSOS
+			FETCH NEXT FROM CURSOR_PROCESSOS INTO @MATRICULA_AUX
+
+	WHILE @@FETCH_STATUS = 0 
+	BEGIN
+		INSERT INTO auditoria_salario 
+            SELECT i.matricula, 
+                   d.salario, 
+                   i.salario,
+                   SYSTEM_USER, 
+                   Getdate() 
+            FROM   deleted d, 
+                   inserted i 
+            WHERE  d.matricula = i.matricula 
+                   AND @matricula_aux = i.matricula 
+
+			FETCH NEXT FROM CURSOR_PROCESSOS INTO @MATRICULA_AUX
+	END
+
+	CLOSE CURSOR_PROCESSOS
+	DEALLOCATE CURSOR_PROCESSOS
+END
+GO
+
+--EXEMPLO 2:
+
+create table conta_corrente
+( conta_c varchar(20) not null,
+  valor   decimal(10,2) not null,
+  operacao char(1) not null --D / C
+  ) 
+--drop table saldo_conta
+  create table saldo_conta
+  (conta_c varchar(20) not null,
+   saldo   decimal(10,2) not null
+  );
+  go
+
+
+  CREATE TRIGGER TRC_CORRENTE
+  ON conta_corrente
+  for insert
+  as
+  begin
+	DECLARE @CONTA_C VARCHAR(20), 
+			@VALOR   DECIMAL(10, 2), 
+            @OPER    CHAR(1) 
+
+	SELECT	@CONTA_C = conta_c, 
+			@VALOR = valor, 
+			@OPER = operacao
+	FROM INSERTED;
+
+	IF (@OPER NOT IN ('D', 'C'))
+	BEGIN
+		PRINT 'OPERAÇÃO INVÁLIDA'
+		ROLLBACK TRANSACTION
+	END
+	ELSE IF(SELECT COUNT(*)
+			FROM saldo_conta 
+			WHERE conta_c = @CONTA_C) = 0
+			AND @OPER = 'D'
+			BEGIN
+				INSERT INTO saldo_conta VALUES(@CONTA_C, @VALOR * -1)
+			END
+	ELSE IF(SELECT COUNT(*)
+			FROM saldo_conta 
+			WHERE conta_c = @CONTA_C) = 0
+			AND @OPER = 'C'
+			BEGIN
+				INSERT INTO saldo_conta VALUES(@CONTA_C, @VALOR)
+			END
+	ELSE IF(SELECT COUNT(*)
+			FROM saldo_conta 
+			WHERE conta_c = @CONTA_C) > 0
+			AND @OPER = 'C'
+			BEGIN
+				UPDATE saldo_conta SET saldo = saldo + @VALOR
+				WHERE conta_c = @CONTA_C;
+			END
+	ELSE IF(SELECT COUNT(*)
+			FROM saldo_conta 
+			WHERE conta_c = @CONTA_C) > 0
+			AND @OPER = 'D'
+			BEGIN
+				UPDATE saldo_conta SET saldo = saldo - @VALOR
+				WHERE conta_c = @CONTA_C;
+			END
+  END
+  GO
+
+--VERIFICANDO A TRAVA DE OPERAÇÃO
+insert into conta_corrente values (123478,1500,'X')
+insert into conta_corrente values (123479,2000,'Y')
+
+--TESTES DE MOVIMENTO
+insert into conta_corrente values (123478,3000,'C')
+insert into conta_corrente values (123478,3000,'D')
+insert into conta_corrente values (123478,1500,'C')
+insert into conta_corrente values (123478,2000,'D')
+
+insert into conta_corrente values (123479,3000,'C')
+insert into conta_corrente values (123479,2000,'D')
+
+SELECT * FROM conta_corrente
+SELECT * FROM saldo_conta
+GO
+
+--EXEMPLO 3:
+
+--CONTROLA O DDL EM TODO O BANCO DE DADOS
+CREATE TRIGGER TRG_CONTROLA_DDL
+ON DATABASE 
+FOR create_procedure, alter_procedure, drop_procedure,CREATE_TABLE,DROP_TABLE, ALTER_TABLE
+AS 
+IF DATEPART(HH, GETDATE()) >= 12 OR  DATEPART(HH, GETDATE()) <= 18
+BEGIN
+	PRINT 'Complete o trabalho em horário comercial'
+	ROLLBACK
+END
+GO
+
+--CONTROLA O DDL EM TODO O SERVIDOR
+CREATE TRIGGER TRG_CONTROLA_DDL_SERV
+ON ALL SERVER 
+FOR create_procedure, alter_procedure, drop_procedure,CREATE_TABLE,DROP_TABLE, ALTER_TABLE
+AS 
+IF DATEPART(HH, GETDATE()) >= 12 OR  DATEPART(HH, GETDATE()) <= 18
+BEGIN
+	PRINT 'Complete o trabalho em horário comercial'
+	ROLLBACK
+END
+GO
+
+--TESTE:
+CREATE PROCEDURE TESTE
+AS
+BEGIN
+	PRINT 'TESTE'
+END
+
+EXEC TESTE;
+
+--DROPANDO AS TRIGGERS:
+DROP TRIGGER TRG_CONTROLA_DDL_SERV ON ALL SERVER
+DROP TRIGGER TRG_CONTROLA_DDL ON DATABASE
+DROP PROCEDURE TESTE
+
+--MERGE:
+USE CURSO
+CREATE TABLE #Tabela1 
+        ( 
+		 nome VARCHAR (100),
+         cadastro DATETIME,
+		 alteracao DATETIME,
+		 situacao BIT)
+
+INSERT #Tabela1  VALUES 
+			('JACK', GETDATE(), NULL, 1),
+            ('PETER', GETDATE(), NULL, 1),
+            ('JOHN', GETDATE(), NULL, 1),
+            ('MALCON', GETDATE(), NULL, 1),
+			('ARTHUR', GETDATE(), NULL, 1)
+
+CREATE TABLE #Tabela2 
+		( nome VARCHAR(100), 
+		  email VARCHAR(100))
+
+INSERT #Tabela2  VALUES 
+			('JACK','jack@jack.com'),
+            ('PETER','peter@peter.com'),
+            ('JOHN','john@jonh.com'),
+            ('MALCON','malcon@malcon.com'),
+			('RICHARD','richard@richard.com')
+
+SELECT * FROM #Tabela1
+
+SELECT * FROM #Tabela2
+
+--TABELA QUE RECEBERÁ A ATUALIZAÇÃO
+MERGE #TABELA1 AS DESTINO
+--TABELA QUE IRÁ CEDER DADOS PARA ATUALIZAR
+USING #TABELA2 AS ORIGEM 
+ON ORIGEM.NOME = DESTINO.NOME
+
+--QUANDO FOR ENCONTRADO DADOS
+WHEN MATCHED
+THEN UPDATE SET SITUACAO = 0, ALTERACAO = GETDATE()
+
+--QUANDO TEMOS REGISTRO NA ORIGEM, MAS NÃO TEMOS NA DESTINO
+WHEN NOT MATCHED 
+THEN INSERT (NOME, CADASTRO, ALTERACAO, SITUACAO)VALUES(ORIGEM.NOME, GETDATE(), GETDATE(), 1)
+
+--QUANDO TEMOS REGISTROS NA DESTINO MAS QUE TEMOS NA ORIGEM
+WHEN NOT MATCHED BY SOURCE 
+THEN UPDATE SET SITUACAO = NULL, ALTERACAO = GETDATE();
+
+drop table produtos;
+
+--EXEMPLO 2:
+
+use curso;
+go
+
+CREATE TABLE produtos
+(
+cod_prod INT PRIMARY KEY,
+descricao VARCHAR(100),
+preco MONEY
+) 
+GO
+
+INSERT INTO produtos
+VALUES
+(1, 'Cha', 10.00),
+(2, 'Café', 20.00),
+(3, 'Leite',30.00),
+(4, 'Pão', 40.00)
+GO
+
+CREATE TABLE produto_atualizados
+(
+cod_prod INT PRIMARY KEY,
+descricao VARCHAR(100),
+preco MONEY
+) 
+GO
+
+INSERT INTO produtos
+VALUES (6, 'Acucar', 10.00)
+
+INSERT INTO produto_atualizados
+VALUES
+(1, 'Cha', 10.00),
+(2, 'Café', 25.00),
+(3, 'Leite', 35.00),
+(5, 'Peixe', 60.00)
+GO
+
+INSERT INTO produto_atualizados
+VALUES (6, 'Sal', 10.00)
+
+MERGE produtos AS DESTINO 
+USING produto_atualizados AS ORIGEM
+ON DESTINO.cod_prod = ORIGEM.cod_prod
+
+WHEN MATCHED and destino.descricao <> origem.descricao OR destino.preco <> origem.preco THEN 
+update set destino.descricao = origem.descricao, destino.preco = origem.preco
+
+WHEN NOT MATCHED BY TARGET THEN 
+INSERT (cod_prod, descricao, preco) 
+VALUES (origem.cod_prod, origem.descricao, origem.preco)
+
+WHEN NOT MATCHED BY SOURCE THEN 
+DELETE
+
+OUTPUT $action AS AÇÃO, 
+DELETED.cod_prod AS Destino_cod_prod, 
+DELETED.descricao AS Destino_descricao, 
+DELETED.preco AS Destino_preco, 
+INSERTED.cod_prod AS origem_cod_prod, 
+INSERTED.descricao AS origem_descricao, 
+INSERTED.preco AS origem_epreco; 
+
+SELECT @@ROWCOUNT;
+GO
+
+SELECT * FROM produtos
+SELECT * FROM produto_atualizados
+GO
+
+--USANDO BULK:
+create table produto
+   (cod nvarchar(5),
+    nome nvarchar(20)
+)
+
+BULK INSERT PRODUTO 
+FROM 'D:\SQL\carga\produto.txt'
+WITH(
+	codepage='ACP',  -- { 'ACP' | 'OEM' | 'RAW' | 'code_page' } ] 
+    DATAFILETYPE = 'widechar',   --      { 'char' | 'native'| 'widechar' | 'widenative' } ]         
+	fieldterminator='|',               
+	rowterminator='\n',               
+	maxerrors = 0,               
+	fire_triggers,             
+	firstrow = 3,               
+ 	lastrow = 10
+	) ;
+
+select * from produto
+drop table produto;
+
+--LINKED SERVER:
+--CRIANDO LINKED SERVER
+EXEC        sp_addlinkedserver 
+            @server = 'LNK_EXP', 
+			@srvproduct='', 
+			@provider='SQLNCLI', 
+			@datasrc='INFINITY\SQLEXPRESS' 
+
+--CRIANDO USUARIO DO  LINKED SERVER
+
+--AS QUERYS NÃO FUNCIONAM POR QUE NAO TENHO O BANCO USADO DE EXEMPLO 
+EXEC sp_addlinkedsrvlogin
+	 @rmtsrvname='LNK_EXP', 
+	 @useself='true', 
+	 @locallogin='INFINITY\andre', 
+	 @rmtuser=NULL, 
+     @rmtpassword='derek1977'
+EXEC sp_droplinkedsrvlogin @rmtsrvname='LNK_EXP', @locallogin='INFINITY\andre'
+
+--COMANDOS:
+SELECT * FROM OPENQUERY(LNK_EXP,'SELECT * FROM curso.dbo.carros');
+
+INSERT   OPENQUERY(LNK_EXP,'SELECT COD,NOME_CARRO,PRECO FROM curso.dbo.carros')
+         VALUES (4,'CARRO PRATA',35000);
+
+UPDATE   OPENQUERY(LNK_EXP,'SELECT COD,NOME_CARRO,PRECO FROM curso.dbo.carros WHERE COD=4')
+         SET PRECO=50000;
+
+DELETE   OPENQUERY(LNK_EXP,'SELECT COD FROM curso.dbo.carros WHERE COD=''4''');
+
+--USANDO OPENROWSET:
+sp_configure 'show advanced options', 1;  
+RECONFIGURE;
+GO 
+
+sp_configure 'Ad Hoc Distributed Queries', 1;  
+RECONFIGURE;  
+GO 
+
+--PARA RECONFIGURARAR, BASTA TROCAR O 1 POR 0
+
+--AS QUERYS NÃO FUNCIONAM POR QUE NAO TENHO O BANCO USADO DE EXEMPLO 
+SELECT *  
+FROM OPENROWSET('SQLNCLI', 'Server=infinity\sqlexpress;Trusted_Connection=yes;',  
+     'SELECT *   
+      FROM curso.dbo.carros') AS tabela_externa;
+
+SELECT *  
+FROM OPENROWSET('SQLNCLI', 'Server=infinity\sqlexpress;Trusted_Connection=yes;',  
+     'SELECT *   
+      FROM curso.dbo.carros') AS tabela_externa;
+
+INSERT OPENROWSET('SQLNCLI', 'Server=infinity\sqlexpress;Trusted_Connection=yes;',  
+     'SELECT *   
+      FROM curso.dbo.carros') 
+VALUES (4,'CARRO METALICO',23000);
+
+UPDATE OPENROWSET('SQLNCLI', 'Server=infinity\sqlexpress;Trusted_Connection=yes;',  
+     'SELECT *   
+      FROM curso.dbo.carros WHERE COD=4') 
+SET PRECO=25000;
+
+DELETE OPENROWSET('SQLNCLI', 'Server=infinity\sqlexpress;Trusted_Connection=yes;',  
+     'SELECT *   
+      FROM curso.dbo.carros WHERE COD=4') 
+GO
+
+--CROSS APPLY E OUTER APPLY 
+USE curso 
+
+go 
+
+CREATE TABLE t_funcionario 
+  ( 
+     id_func   INT IDENTITY(1, 1) NOT NULL PRIMARY KEY, 
+     nome_func VARCHAR(30) NOT NULL, 
+     id_depto  INT NOT NULL 
+  ) 
+
+go 
+
+CREATE TABLE t_deptos 
+  ( 
+     id_depto   INT IDENTITY(1, 1) NOT NULL PRIMARY KEY, 
+     nome_depto VARCHAR(30) 
+  ) 
+
+go 
+
+CREATE TABLE t_func_sal 
+  ( 
+     id_func INT NOT NULL PRIMARY KEY, 
+     valor   DECIMAL(10, 2) NOT NULL 
+  ) 
+
+go 
+
+CREATE TABLE t_bonus 
+  ( 
+     id_func   INT NOT NULL PRIMARY KEY, 
+     pct_bonus DECIMAL (10, 2) NOT NULL 
+  ) 
+
+--populando tabelas 
+INSERT INTO t_deptos 
+VALUES      ('Administracao'), 
+            ('Producao') 
+
+INSERT INTO t_funcionario 
+VALUES      ('Will',1), ('John',1), 
+            ('Peter',1),('Derek',2), 
+            ('Greg',2), ('Mary',2), 
+            ('Jane',1), ('Mark',2), 
+            ('Samy',1), ('Saul',2) 
+
+INSERT INTO t_func_sal 
+VALUES      (1,1000),(2,1500), 
+            (3,2000),(4,2500), 
+            (5,3000),(6,3500), 
+            (7,1250),(8,1750), 
+            (9,2250),(10,3250) 
+
+INSERT INTO t_bonus 
+VALUES      (1,2),(3,2.5), 
+            (5,1.75),(7,2.75), 
+            (9,1.25) 
+
+SELECT a.id_func, a.nome_func, b.pct_bonus 
+FROM  t_funcionario a 
+INNER JOIN t_bonus b 
+ON a.id_func = b.id_func
+
+SELECT a.id_func, a.nome_func, b.pct_bonus 
+FROM t_funcionario a 
+LEFT JOIN t_bonus b 
+ON a.id_func = b.id_func
+
+SELECT a.id_func, a.nome_func, b.pct_bonus 
+FROM t_funcionario a 
+RIGHT JOIN t_bonus b 
+ON a.id_func = b.id_func
+go
+
+CREATE FUNCTION DBO.func_calc_bonus(@p_id_func int)
+returns @tb1 TABLE(
+	val_bonus decimal(10,2)
+)
+AS BEGIN
+	INSERT INTO @tb1
+	SELECT CAST(a.valor * (b.pct_bonus / 100) AS decimal(10, 2)) AS val_bonus
+	FROM t_func_sal a
+	INNER JOIN t_bonus b
+	on a.id_func = b.id_func
+	WHERE a.id_func = @p_id_func
+	RETURN
+END
+GO
+
+SELECT * FROM DBO.func_calc_bonus(1)
+
+--CROSS APPLY: TRÁS SOMENTE AQUELE QUE CONTÉM INFORMAÇÃO NA TABELA DE FUNÇÃO CALC_BONUS
+SELECT	a.id_func, 
+		a.nome_func,
+		c.nome_depto ,
+        b.valor, 
+        F_BON.val_bonus 
+FROM t_funcionario A
+INNER JOIN t_func_sal B
+ON A.id_func = B.id_func
+INNER JOIN t_deptos C
+ON A.id_depto = C.id_depto
+CROSS APPLY DBO.func_calc_bonus(A.id_func) AS F_BON
+
+--OUTER APPLY: TRÁS TODOS, E PARA AQUELES QUE POSSUEM INTEGRAÇÃO COM A FUNÇÃO, ELE TRÁS O RESULTADO DA FUNÇÃO
+SELECT	a.id_func, 
+        a.nome_func,
+		c.nome_depto ,
+        b.valor, 
+        ISNULL(F_BON.val_bonus,0) val_bonus
+FROM        t_funcionario a 
+INNER JOIN  t_func_sal b 
+ON          a.id_func=b.id_func 
+INNER JOIN  t_deptos c 
+ON          a.id_depto=c.id_depto
+OUTER apply dbo.Func_calc_bonus(a.id_func) AS F_BON;
+
+--MÁSCARA DE DDM
+USE master
+
+CREATE TABLE CLIENTE  
+  (ID_CLIENTE int IDENTITY PRIMARY KEY,  
+   Primeiro_nome varchar(100) MASKED WITH (FUNCTION = 'partial(1,"XXXXXXX",0)') NOT NULL,  
+   Ultimo_nome varchar(100) NOT NULL,  
+   telefone varchar(12) MASKED WITH (FUNCTION = 'default()') NULL,  
+   Email varchar(100) MASKED WITH (FUNCTION = 'email()') NULL, 
+   cartao_credito varchar(20) NOT NULL,  
+   salario decimal(10,2)NOT NULL)  ;  
+  
+INSERT CLIENTE  VALUES   
+('Andre', 'Rosa', '555.123.4567', 'andrer@teste.com','1111-2222-3333-4444',12000),  
+('Pedro', 'Silva', '555.123.4568', 'pedros@teste.com','1234-4321-9632-7411',9000),  
+('Mariana', 'Souza', '555.123.4569', 'marianas@teste.net','1234-4321-9632-7411',15000);  
+
+SELECT * FROM CLIENTE
+
+
+--ROLES PARA CONTROLE DE GRUPO DE USUÁRIO
+
+  create role vendedores_com_acesso
+  create role vendedores_sem_mask
+  create role vendedores_sem_acesso
+
+--CRIANDO USUÁRIOS DE TESTE
+  CREATE USER  joao  WITHOUT LOGIN; 
+  CREATE USER  pedro WITHOUT LOGIN; 
+  CREATE USER  paulo WITHOUT LOGIN;
+
+--ADICINANDO OS USUÁRIOS NAS ROLES:
+EXEC sp_addrolemember 'vendedores_com_acesso', 'joao';
+EXEC sp_addrolemember 'vendedores_com_acesso', 'pedro';
+
+EXEC sp_addrolemember 'vendedores_sem_mask', 'pedro';
+
+EXEC sp_addrolemember 'vendedores_sem_acesso', 'paulo';
+
+--DANDO ACESSO ÀS ROLES:
+GRANT SELECT ON CLIENTE TO vendedores_com_acesso
+
+GRANT UNMASK TO vendedores_sem_mask; 
+
+DENY SELECT ON CLIENTE TO vendedores_sem_acesso
+
+--SIMULANDO O ACESSO DO JOAO
+EXECUTE AS USER = 'joao';  
+--PERCEBE-SE QUE APARECE COM OS FILTROS COLOCADOS NA HORA DA CRIAÇÃO DA TABELA
+SELECT * FROM CLIENTE;  
+--USADO PARA VOLTAR PARA O USUÁRIO PADRÃO
+REVERT;  
+
+EXECUTE AS USER = 'pedro';  
+SELECT * FROM CLIENTE; 
+REVERT;  
+
+EXECUTE AS USER = 'paulo';  
+SELECT * FROM CLIENTE; 
+REVERT;  
+
+--COMO VERIFICAR OS DADOS QUE TÊM MASCARA:
+SELECT c.name, tbl.name as table_name, c.is_masked, c.masking_function  
+FROM sys.masked_columns AS c  
+JOIN sys.tables AS tbl   
+    ON c.[object_id] = tbl.[object_id]  
+WHERE is_masked = 1; 
+
+--COLOCANDO MASCARAS NOS DADOS QUE NÃO TINHAM MASCARAS:
+ALTER TABLE CLIENTE ALTER COLUMN ULTIMO_NOME ADD MASKED WITH (FUNCTION = 'partial(2,"XXXXXXX",0)')
+
+ALTER TABLE CLIENTE ALTER COLUMN TELEFONE ADD MASKED WITH (FUNCTION = 'partial(5,"XXXXXXX",0)')
+
+ALTER TABLE CLIENTE ALTER COLUMN CARTAO_CREDITO ADD MASKED WITH (FUNCTION = 'partial(0,"XXXX-XXXX-XXXX-",4)')
+
+ALTER TABLE CLIENTE ALTER COLUMN SALARIO ADD MASKED WITH (FUNCTION = 'default()')
+
+--TESTAND A MASCARA 
+EXECUTE AS USER = 'joao';
+SELECT * FROM CLIENTE
+REVERT;
+
+--teste de acesso Pedro
+
+EXECUTE AS USER = 'pedro';  
+SELECT * FROM CLIENTE; 
+REVERT;  
+--teste de acesso Paulo --Sem acesso, erro  esperado
+
+EXECUTE AS USER = 'paulo';  
+SELECT * FROM CLIENTE; 
+REVERT;  
+
+--RETIRANDO USUARIOS DAS ROLES: DROPROLEMEMBER
+EXEC sp_droprolemember 'vendedores_sem_mask', 'pedro';
+
+EXECUTE AS USER = 'pedro';  
+SELECT * FROM CLIENTE; 
+REVERT;  
