@@ -1,0 +1,392 @@
+/*
+EXERCÍCIO 1 
+Crie o banco de dados treino com as tabelas conforme diagrama.
+*/
+CREATE DATABASE TREINO;
+
+/*
+EXERCÍCIO 2 
+Restaurar o arquivo  treino.bak no banco de dados criado.
+*/
+USE TREINO;
+
+/*
+EXERCÍCIO 3 
+Liste todos os clientes com seus nomes e com suas respectivas cidade e estados
+*/
+
+SELECT C.ID_CLIENTE, C.NOME_CLIENTE, CI.NOME_CIDADE, CI.UF
+FROM CLIENTE C
+INNER JOIN CIDADE CI
+ON C.ID_CIDADE = CI.ID_CIDADE
+
+  
+/*
+EXERCÍCIO 4 
+Liste o código do produto, descrição do produto e descrição das categorias dos produtos que tenham o valor unitário na 
+faixa de R$ 10,00 a R$ 1500
+*/
+
+SELECT * FROM VENDA_ITENS;
+
+SELECT DISTINCT P.ID_PROD, P.NOME_PRODUTO, C.NOME_CATEGORIA
+FROM PRODUTOS P
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+INNER JOIN VENDA_ITENS V
+ON P.ID_PROD = V.ID_PROD
+WHERE V.VAL_UNIT BETWEEN 10.00 AND 1500.00
+ORDER BY ID_PROD
+
+/*
+EXERCÍCIO 5 
+Liste o código do produto, descrição do produto e descrição da categorias dos produtos, e também apresente uma coluna condicional  com o  nome de "faixa de preço" 
+Com os seguintes critérios
+•	preço< 500 : valor da coluna será  igual  "preço abaixo de 500"
+•	preço  >= 500 e <=1000 valor da coluna será igual  "preço entre 500 e 1000"
+•	preço  > 1000 : valor da coluna será igual  "preço acima de 1000".
+*/
+
+SELECT DISTINCT P.ID_PROD, P.NOME_PRODUTO, C.NOME_CATEGORIA,
+CASE WHEN P.PRECO < 500 THEN 'preço abaixo de 500'
+	 WHEN P.PRECO >= 500 AND P.PRECO <= 1000 THEN 'preço entre 500 e 1000' 
+	 WHEN P.PRECO > 1000 THEN 'preço acima de 1000'
+	 END AS "faixa de preço"
+FROM PRODUTOS P
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+ORDER BY ID_PROD
+
+/*
+EXERCÍCIO  6
+Adicione a coluna faixa_salario na tabela vendedor tipo char(1)
+*/
+
+ALTER TABLE VENDEDORES ADD FAIXA_SALARIO CHAR(1)
+
+/*
+EXERCÍCIO 7 
+Atualize o valor do campo faixa_salario da tabela vendedor com um update condicional .
+Com os seguintes critérios
+•	salario <1000 ,atualizar faixa = c
+•	salario >=1000  and <2000 , atualizar faixa = b
+•	salario >=2000  , atualizar faixa = a
+
+**VERIFIQUE SE OS VALORES FORAM ATUALIZADOS CORRETAMENTE
+*/
+BEGIN TRANSACTION 
+
+UPDATE VENDEDORES SET FAIXA_SALARIO = (
+CASE WHEN SALARIO < 1000 THEN 'c'
+	 WHEN SALARIO >= 1000 AND SALARIO < 2000 THEN 'b'
+	 WHEN SALARIO >= 2000 THEN 'a'
+	 END
+	 )
+
+COMMIT
+
+SELECT * FROM VENDEDORES
+
+/*
+EXERCÍCIO 8
+Listar em ordem alfabética os vendedores e seus respectivos salários, mais uma coluna, simulando aumento de 12% em seus salários.
+*/
+
+SELECT V.NOME_VENDEDOR, V.SALARIO, (V.SALARIO + V.SALARIO * 0.12) AS AUMENTO
+FROM VENDEDORES V
+ORDER BY NOME_VENDEDOR
+
+
+/*EXERCÍCIO 9
+Listar os nome dos vendedores, salário atual , coluna calculada com salario novo + reajuste de 18% sobre o salário atual, 
+calcular  a coluna acréscimo e calcula uma coluna salario novo+ acresc.
+Critérios
+Se o vendedor for  da faixa “C”, aplicar  R$ 120 de acréscimo , outras faixas de salario acréscimo igual a 0(Zero )
+*/
+
+SELECT	V.NOME_VENDEDOR, V.SALARIO, (V.SALARIO + V.SALARIO * 0.18) AS "SALARIO NOVO",
+		CASE WHEN V.FAIXA_SALARIO = 'c' THEN '120' ELSE '0' END AS ACRECIMO,
+		CASE WHEN V.FAIXA_SALARIO = 'c' THEN (V.SALARIO + V.SALARIO * 0.18) + 120 ELSE (V.SALARIO + V.SALARIO * 0.18) + 0 END AS "NOVO + ACRESC"
+FROM VENDEDORES V
+ORDER BY SALARIO
+
+/*
+EXERCÍCIO 10
+Listar o nome e salários do vendedor com menor salario.
+*/
+
+SELECT * FROM VENDEDORES
+
+SELECT TOP 1 V.NOME_VENDEDOR, V.SALARIO AS SALARIO
+FROM VENDEDORES V
+ORDER BY SALARIO ASC
+
+/*
+EXERCÍCIO 11
+Quantos vendedores ganham acima de R$ 2.000,00 de salário fixo?
+*/
+
+SELECT COUNT(*) AS VENDEDORES 
+FROM VENDEDORES 
+WHERE SALARIO > 2000
+
+/*
+EXERCÍCIO 12
+Adicione o campo valor_total tipo decimal(10,2) na tabela venda.
+*/
+EXEC SP_HELP VENDAS
+
+ALTER TABLE VENDAS ADD VALOR_TOTAL DECIMAL(10,2);
+
+/*
+EXERCÍCIO 13
+Atualize o campo valor_tota da tabela venda, com a soma dos produtos das respectivas vendas.
+*/
+
+
+SELECT * FROM VENDAS
+SELECT * FROM VENDA_ITENS
+
+UPDATE VENDAS SET VALOR_TOTAL = (SELECT SUM(V2.VAL_TOTAL) FROM VENDA_ITENS V2
+								 WHERE VENDAS.NUM_VENDA = V2.NUM_VENDA)
+/*
+EXERCÍCIO 14
+Realize a conferencia do exercício anterior, certifique-se que o valor  total de cada venda e igual ao valor total da soma dos  produtos da venda, listar as vendas em que ocorrer diferença.
+*/
+
+SELECT	VI.NUM_VENDA, SUM(VI.VAL_TOTAL) AS VAL_TOT_ITENS,
+		V.NUM_VENDA, V.VALOR_TOTAL
+FROM VENDA_ITENS VI
+INNER JOIN VENDAS V
+ON VI.NUM_VENDA = V.NUM_VENDA AND VI.NUM_VENDA IN (V.VALOR_TOTAL)
+GROUP BY V.NUM_VENDA, VI.NUM_VENDA, V.VALOR_TOTAL
+ORDER BY VI.NUM_VENDA
+
+/*
+EXERCÍCIO 15
+Listar o número de produtos existentes, valor total , média do valor unitário referente ao mês 07/2018 agrupado por venda.
+*/
+
+SELECT COUNT(*) AS QUANTIDADE, VE.VALOR_TOTAL, AVG(V.VAL_UNIT) AS MÉDIA, DATEPART(MONTH, VE.DATA_VENDA) AS MES, DATEPART(YEAR, VE.DATA_VENDA) AS ANO
+FROM PRODUTOS P
+INNER JOIN VENDA_ITENS V
+ON P.ID_PROD = V.ID_PROD
+INNER JOIN VENDAS VE
+ON V.NUM_VENDA = VE.NUM_VENDA
+WHERE DATEPART(MONTH, VE.DATA_VENDA) = '07' AND
+	  DATEPART(YEAR, VE.DATA_VENDA) = '2018'
+GROUP BY VE.DATA_VENDA, VE.VALOR_TOTAL
+ORDER BY QUANTIDADE
+
+/*
+EXERCÍCIO 16
+Listar o número de vendas, Valor do ticket médio, menor ticket e maior ticket referente ao mês 07/2017.
+*/
+
+SELECT	COUNT(*) AS NUM_VENDAS,
+		AVG(V.VALOR_TOTAL) AS MEDIA,
+		MIN(V.VALOR_TOTAL) AS MIN,
+		MAX(V.VALOR_TOTAL) AS MAX
+		FROM VENDAS V
+		WHERE DATEPART(MONTH, V.DATA_VENDA) = '07' AND
+			  DATEPART(YEAR, V.DATA_VENDA) = '2017'
+
+/*
+EXERCÍCIO 17
+Atualize o status das notas abaixo de normal(N) para cancelada (C)
+--15,34,80,104,130,159,180,240,350,420,422,450,480,510,530,560,600,640,670,714
+
+*/
+BEGIN TRANSACTION
+
+UPDATE VENDAS SET STATUS = 'C'
+WHERE NUM_VENDA IN (15,34,80,104,130,159,180,240,350,420,422,450,480,510,530,560,600,640,670,714)
+
+SELECT * FROM VENDAS
+WHERE STATUS = 'C'
+
+COMMIT
+/*
+EXERCÍCIO 18
+Quais clientes realizaram mais de 70 compras?
+*/
+
+SELECT COUNT(*) AS QUANTIDADE, C.ID_CLIENTE, C.NOME_CLIENTE 
+FROM CLIENTE C
+INNER JOIN VENDAS V
+ON C.ID_CLIENTE = V.ID_CLIENTE
+GROUP BY C.ID_CLIENTE, C.NOME_CLIENTE 
+HAVING COUNT(*) > 70
+ORDER BY QUANTIDADE
+
+/*
+EXERCÍCIO 19
+Listar os produtos que estão incluídos em vendas que a quantidade total de produtos seja superior a 100 unidades.
+*/
+
+WITH T1 AS(
+SELECT V.NUM_VENDA, SUM(QTDE) AS QUANTIDADE
+FROM VENDAS V
+INNER JOIN VENDA_ITENS VI
+ON V.NUM_VENDA = VI.NUM_VENDA
+GROUP BY V.NUM_VENDA
+HAVING SUM(QTDE) > 100
+)
+
+SELECT V.NUM_VENDA, P.NOME_PRODUTO, V.QTDE
+FROM T1 T
+INNER JOIN VENDA_ITENS V
+ON T.NUM_VENDA = V.NUM_VENDA
+INNER JOIN PRODUTOS P
+ON V.ID_PROD = P.ID_PROD
+
+/*
+EXERCÍCIO 20
+Trazer total de vendas do ano 2017 por categoria e apresentar total geral
+*/
+
+SELECT * FROM VENDA_ITENS
+
+SELECT	ISNULL(C.NOME_CATEGORIA, 'Total geral ') AS NOME_CATEGORIA, 
+		SUM(VI.VAL_TOTAL)
+FROM VENDA_ITENS VI
+INNER JOIN VENDAS V
+ON VI.NUM_VENDA = V.NUM_VENDA
+INNER JOIN PRODUTOS P
+ON VI.ID_PROD = P.ID_PROD
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+WHERE DATEPART(YEAR, V.DATA_VENDA) = '2017'
+GROUP BY ROLLUP(C.NOME_CATEGORIA)
+
+/*
+EXERCÍCIO 21
+Listar total de vendas do ano 2017 por categoria e mês a mês apresentar subtotal dos meses e total geral ano.
+*/
+
+SELECT	ISNULL(C.NOME_CATEGORIA, 'Total geral ') AS NOME_CATEGORIA, 
+		ISNULL(DATEPART(MONTH, V.DATA_VENDA), 0) AS MES,
+		SUM(VI.VAL_TOTAL) AS SOMA
+FROM VENDA_ITENS VI
+INNER JOIN VENDAS V
+ON VI.NUM_VENDA = V.NUM_VENDA
+INNER JOIN PRODUTOS P
+ON VI.ID_PROD = P.ID_PROD
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+WHERE DATEPART(YEAR, V.DATA_VENDA) = '2017'
+GROUP BY ROLLUP(DATEPART(MONTH, V.DATA_VENDA), C.NOME_CATEGORIA)
+
+/*
+EXERCÍCIO 22
+Listar total de vendas por vendedores referente ao ano 2017, mês a mês apresentar subtotal do mês e total geral.
+*/
+
+SELECT	ISNULL(CAST(ID_VENDEDOR AS VARCHAR(5)), 'GERAL') AS VENDEDOR, 
+		SUM(VALOR_TOTAL) AS TOTAL
+		FROM VENDAS V 
+WHERE DATEPART(YEAR, V.DATA_VENDA) = '2017'
+GROUP BY ROLLUP(DATEPART(MONTH, V.DATA_VENDA), ID_VENDEDOR)
+
+/*
+EXERCÍCIO 23
+Listar os top 10 produtos mais vendidos por valor total de venda com suas respectivas categorias
+*/
+
+SELECT TOP 10 P.NOME_PRODUTO, C.NOME_CATEGORIA, SUM(V.VAL_TOTAL) AS TOTAL
+FROM PRODUTOS P
+INNER JOIN VENDA_ITENS V
+ON V.ID_PROD = P.ID_PROD
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+GROUP BY P.NOME_PRODUTO, C.NOME_CATEGORIA
+ORDER BY TOTAL DESC
+
+/*
+EXERCÍCIO 24
+Listar os top 10 produtos mais vendidos por valor total de venda com suas respectivas categorias, calcular seu percentual de participação com relação ao total geral.
+*/
+
+DECLARE @ANO CHAR(4) = '2017'
+DECLARE @SOMA DECIMAL(10,2)
+SELECT @SOMA  = SUM(V.VALOR_TOTAL) FROM VENDAS V WHERE YEAR(V.DATA_VENDA) = @ANO
+
+SELECT TOP 10	P.NOME_PRODUTO, C.NOME_CATEGORIA, SUM(VI.VAL_TOTAL) AS TOTAL, 
+				100/@SOMA * SUM(VI.VAL_TOTAL) AS PARTICIPACAO
+FROM PRODUTOS P
+INNER JOIN VENDA_ITENS VI
+ON VI.ID_PROD = P.ID_PROD
+INNER JOIN CATEGORIA C
+ON P.ID_CATEGORIA = C.ID_CATEGORIA
+INNER JOIN VENDAS V
+ON VI.NUM_VENDA = V.NUM_VENDA
+WHERE YEAR(V.DATA_VENDA) = @ANO
+GROUP BY P.NOME_PRODUTO, C.NOME_CATEGORIA
+ORDER BY TOTAL DESC
+
+/*
+EXERCÍCIO 25
+Listar apenas o produto mais vendido de cada Mês com seu  valor total referente ao ano de 2017.
+*/
+
+SELECT	P.ID_PROD, 
+		SUM(VI.VAL_TOTAL) AS TOTAL, 
+		MONTH(V.DATA_VENDA) AS MES
+		INTO #TB1
+FROM PRODUTOS P
+INNER JOIN VENDA_ITENS VI
+ON VI.ID_PROD = P.ID_PROD
+INNER JOIN VENDAS V
+ON V.NUM_VENDA = VI.NUM_VENDA
+WHERE YEAR(V.DATA_VENDA) = 2017
+GROUP BY P.ID_PROD, MONTH(V.DATA_VENDA)
+ORDER BY MONTH(V.DATA_VENDA), 2 DESC
+
+SELECT	ROW_NUMBER() OVER (PARTITION BY MES ORDER BY MES ASC, TOTAL DESC) AS POSICAO,
+		MES, 
+		ID_PROD,
+		TOTAL
+		INTO #TB2
+		FROM #TB1 T
+
+SELECT T2.POSICAO, T2.MES, P.NOME_PRODUTO, T2.TOTAL
+FROM #TB2 T2
+INNER JOIN PRODUTOS P
+ON T2.ID_PROD = P.ID_PROD
+WHERE T2.POSICAO = 1
+ORDER BY MES
+
+DROP TABLE #TB2
+DROP TABLE #TB1
+
+/*
+EXERCÍCIO 26
+Lista o cliente e a data da última compra de cada cliente.
+*/
+
+SELECT V.NUM_VENDA AS VENDA, C.ID_CLIENTE AS ID, C.NOME_CLIENTE AS NOME, CAST(V.DATA_VENDA AS DATE) AS DATA 
+FROM (SELECT ID_CLIENTE, MAX(DATA_VENDA) AS DATA_VENDA FROM VENDAS WHERE STATUS = 'N' GROUP BY ID_CLIENTE) AS X
+INNER JOIN VENDAS V
+ON V.ID_CLIENTE = X.ID_CLIENTE
+AND V.DATA_VENDA = X.DATA_VENDA
+INNER JOIN CLIENTE C
+ON C.ID_CLIENTE = V.ID_CLIENTE
+AND C.ID_CLIENTE = X.ID_CLIENTE
+GROUP BY C. ID_CLIENTE, V.NUM_VENDA, C.NOME_CLIENTE, V.DATA_VENDA 
+ORDER BY C.ID_CLIENTE
+
+/*
+EXERCÍCIO 27
+Lista o a data da última venda de cada produto.
+*/
+
+SELECT P.ID_PROD, P.NOME_PRODUTO, CAST(A.DATA_VENDA AS DATE) 
+FROM PRODUTOS P 
+INNER JOIN (SELECT VI.ID_PROD, MAX(V.DATA_VENDA) AS DATA_VENDA
+FROM VENDA_ITENS VI
+INNER JOIN VENDAS V
+ON VI.NUM_VENDA = V.NUM_VENDA
+GROUP BY VI.ID_PROD) AS A
+ON A.ID_PROD = P.ID_PROD
+ORDER BY P.ID_PROD
+
